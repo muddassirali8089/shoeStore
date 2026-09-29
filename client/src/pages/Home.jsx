@@ -2,11 +2,14 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight, BadgeCheck, PackageCheck, Ref
 import { Link } from 'react-router-dom'
 import PromotionBanner from '../components/home/PromotionBanner'
 import ProductGrid from '../components/product/ProductGrid'
+import { useProducts } from '../context/ProductContext'
 import { useUI } from '../context/UIContext'
-import { banners, brands, categories, products, sizes } from '../data/products'
+import { banners } from '../data/products'
 
 export default function Home() {
   const { notify } = useUI()
+  const { products, categories, brands, sizes } = useProducts()
+  const brandNames = brands.map((brand) => typeof brand === 'string' ? brand : brand.name)
   const hero = banners[0]
   const featured = products.filter((product) => product.featured).slice(0, 4)
   return <main>
@@ -16,7 +19,7 @@ export default function Home() {
     <section className="section section-pad featured-section"><div className="section-heading"><div><span className="eyebrow">GOOD PAIRS, GREAT STORIES</span><h2>In the <em>spotlight.</em></h2></div><Link className="text-link" to="/shop?sort=featured">View all footwear <ArrowRight size={16} /></Link></div><ProductGrid products={featured} /></section>
     <PromotionBanner image="https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1200&q=85" eyebrow="A SMARTER KIND OF SHOPPING" title={<>Good for your feet.<br /><em>Better for the planet.</em></>} description="Great footwear deserves more than one chapter. Every pre-loved pair is carefully checked, ready to get back out there, and priced to make sense." action="Shop pre-loved" href="/shop?condition=Like+New" />
     <section className="section section-pad browse-sections"><div className="section-heading"><div><span className="eyebrow">MAKE IT YOURS</span><h2>Shop by <em>size.</em></h2><p>Find the right fit, without the endless scroll.</p></div><Link className="text-link" to="/size-guide">Need a size guide? <ArrowRight size={16} /></Link></div><div className="size-row">{sizes.map((size) => <Link key={size} to={`/shop?size=${size}`}><small>EU</small>{size}</Link>)}</div></section>
-    <section className="brand-condition-wrap"><div className="section section-pad brand-section"><span className="eyebrow">THE NAMES YOU KNOW</span><h2>Shop by <em>brand.</em></h2><div className="brand-list">{brands.map((brand, index) => <Link to={`/shop?brand=${encodeURIComponent(brand)}`} key={brand}><span>{brand}</span><small>0{index + 1}</small></Link>)}</div></div><div className="condition-card"><span className="eyebrow">GOOD SHOES. HONEST CONDITION.</span><h2>Find your <em>forever pair.</em></h2><p>Every pair gets a clear, honest condition rating. No guesswork, just good footwear.</p>{['New', 'Like New', 'Used', 'Refurbished'].map((condition) => <Link to={`/shop?condition=${encodeURIComponent(condition)}`} key={condition}>{condition}<ArrowUpRight size={16} /></Link>)}</div></section>
+    <section className="brand-condition-wrap"><div className="section section-pad brand-section"><span className="eyebrow">THE NAMES YOU KNOW</span><h2>Shop by <em>brand.</em></h2><div className="brand-list">{brandNames.map((brand, index) => <Link to={`/shop?brand=${encodeURIComponent(brand)}`} key={brand}><span>{brand}</span><small>0{index + 1}</small></Link>)}</div></div><div className="condition-card"><span className="eyebrow">GOOD SHOES. HONEST CONDITION.</span><h2>Find your <em>forever pair.</em></h2><p>Every pair gets a clear, honest condition rating. No guesswork, just good footwear.</p>{['New', 'Like New', 'Used', 'Refurbished'].map((condition) => <Link to={`/shop?condition=${encodeURIComponent(condition)}`} key={condition}>{condition}<ArrowUpRight size={16} /></Link>)}</div></section>
     <section className="newsletter"><div><span className="eyebrow">A GOOD THING IN YOUR INBOX</span><h2>First dibs. <em>Good deals.</em></h2><p>New finds and good news, now and then. Never the noise.</p></div><form onSubmit={(event) => { event.preventDefault(); event.currentTarget.reset(); notify('You’re on the list. Look out for good things!') }}><label className="sr-only" htmlFor="newsletter-email">Email address</label><input id="newsletter-email" type="email" placeholder="Your email address" required /><button aria-label="Subscribe" type="submit"><ArrowRight /></button><small>By subscribing, you agree to our very occasional emails.</small></form></section>
   </main>
 }

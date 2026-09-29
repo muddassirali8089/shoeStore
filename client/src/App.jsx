@@ -1,5 +1,4 @@
-import { BrowserRouter, Route, Routes, Outlet } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom'
 import { CartProvider } from './context/CartContext'
 import { ProductProvider } from './context/ProductContext'
 import { UIProvider } from './context/UIContext'
@@ -13,16 +12,16 @@ import Home from './pages/Home'
 import { CatalogPage } from './pages/Catalog'
 import ProductDetails from './pages/ProductDetails'
 import { CartPage, CheckoutPage, OrderSuccess } from './pages/Commerce'
-import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
-import { AccountPage, AddressesPage, OrderDetailsPage, OrdersPage, ProfilePage, TrackOrderPage, WishlistPage } from './pages/AccountPages'
+import { TrackOrderPage, WishlistPage } from './pages/GuestPages'
 import { AboutPage, ContactPage, NotFoundPage, ReturnPolicyPage, ShippingPolicyPage, SizeGuidePage } from './pages/SupportPages'
+import AdminRoutes from './Admin'
 
 function MainLayout() {
   return <><AnnouncementBar /><Header /><Outlet /><Footer /><CartDrawer /><ToastViewport /></>
 }
 
-function Providers() {
-  return <UIProvider><AuthProvider><ProductProvider><CartProvider><WishlistProvider><BrowserRouter><Routes>
+function StoreRoutes() {
+  return <Routes>
     <Route element={<MainLayout />}>
       <Route path="/" element={<Home />} />
       <Route path="/shop" element={<CatalogPage />} />
@@ -32,15 +31,6 @@ function Providers() {
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-success" element={<OrderSuccess />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/account" element={<AccountPage />} />
-      <Route path="/account/orders" element={<OrdersPage />} />
-      <Route path="/account/orders/:orderId" element={<OrderDetailsPage />} />
-      <Route path="/account/profile" element={<ProfilePage />} />
-      <Route path="/account/addresses" element={<AddressesPage />} />
       <Route path="/wishlist" element={<WishlistPage />} />
       <Route path="/track-order" element={<TrackOrderPage />} />
       <Route path="/return-policy" element={<ReturnPolicyPage />} />
@@ -50,7 +40,13 @@ function Providers() {
       <Route path="/about" element={<AboutPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Route>
-  </Routes></BrowserRouter></WishlistProvider></CartProvider></ProductProvider></AuthProvider></UIProvider>
+  </Routes>
 }
 
-export default function App() { return <Providers /> }
+export default function App() {
+  return <UIProvider><ProductProvider><CartProvider><WishlistProvider><BrowserRouter><Routes>
+    <Route path="/admin/*" element={<AdminRoutes />} />
+    <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+    <Route path="/*" element={<StoreRoutes />} />
+  </Routes></BrowserRouter></WishlistProvider></CartProvider></ProductProvider></UIProvider>
+}

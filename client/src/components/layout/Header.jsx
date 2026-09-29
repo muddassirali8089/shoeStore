@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Heart, Menu, Search, ShoppingBag, UserRound, X } from 'lucide-react'
+import { Heart, Menu, Search, ShoppingBag, X } from 'lucide-react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useUI } from '../../context/UIContext'
@@ -24,8 +24,7 @@ export default function Header() {
       <nav className="desktop-nav" aria-label="Main navigation"><NavLink to="/shop">Shop all</NavLink>{categories.map((category) => <NavLink key={category.slug} to={`/shop?category=${category.slug}`}>{category.name}</NavLink>)}</nav>
       <div className="header-actions">
         <button className="icon-button search-toggle" aria-label="Search" onClick={() => setSearchOpen(!searchOpen)}><Search size={20} /></button>
-        <Link className="icon-button desktop-action" to="/account" aria-label="My account"><UserRound size={20} /></Link>
-        <Link className="icon-button desktop-action" to="/wishlist" aria-label="Wishlist"><Heart size={20} /></Link>
+        <Link className="icon-button" to="/wishlist" aria-label="Wishlist"><Heart size={20} /></Link>
         <Link className="icon-button bag-link" to="/cart" aria-label={`Shopping bag, ${count} items`}><ShoppingBag size={20} /><span className="bag-count">{count}</span></Link>
       </div>
     </header>
@@ -36,7 +35,7 @@ export default function Header() {
     <aside className={`mobile-menu ${menuOpen ? 'mobile-menu-open' : ''}`} aria-hidden={!menuOpen}>
       <div className="mobile-menu-top"><Link to="/" className="brand-logo"><span className="logo-mark">M</span><span>MGEARS<small>PRE-LOVED. WELL-LOVED.</small></span></Link><button className="icon-button" aria-label="Close menu" onClick={() => setMenuOpen(false)}><X /></button></div>
       <nav><NavLink onClick={() => setMenuOpen(false)} to="/shop">Shop all<span>→</span></NavLink>{categories.map((category) => <NavLink onClick={() => setMenuOpen(false)} key={category.slug} to={`/shop?category=${category.slug}`}>{category.name}<span>→</span></NavLink>)}</nav>
-      <div className="mobile-menu-footer"><Link onClick={() => setMenuOpen(false)} to="/account">My account</Link><Link onClick={() => setMenuOpen(false)} to="/wishlist">Wishlist</Link><Link onClick={() => setMenuOpen(false)} to="/track-order">Track an order</Link></div>
+      <div className="mobile-menu-footer"><Link onClick={() => setMenuOpen(false)} to="/wishlist">Wishlist</Link><Link onClick={() => setMenuOpen(false)} to="/track-order">Track an order</Link></div>
     </aside>
   </>
 }

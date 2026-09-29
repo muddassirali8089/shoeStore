@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 const columns = [
   ['SHOP', ['Shop all|/shop', 'Men|/shop?category=men', 'Women|/shop?category=women', 'Sports|/shop?category=sports', 'Hiking|/shop?category=hiking', 'Casual|/shop?category=casual']],
   ['SUPPORT', ['Track order|/track-order', 'Shipping|/shipping-policy', 'Returns|/return-policy', 'Size guide|/size-guide']],
-  ['YOUR ACCOUNT', ['My account|/account', 'Orders|/account/orders', 'Wishlist|/wishlist']],
-  ['COMPANY', ['About MGEARS|/about', 'Contact us|/contact']],
+  ['YOUR SHOPPING', ['Track an order|/track-order', 'Wishlist|/wishlist']],
+  ['COMPANY', ['About MGEARS|/about', 'Contact us|/contact', 'Admin login|/login']],
 ]
 export default function Footer() {
   return <footer className="site-footer"><div className="footer-main">

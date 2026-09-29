@@ -3,11 +3,12 @@ import { ChevronDown, SlidersHorizontal, X } from 'lucide-react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import ProductGrid from '../components/product/ProductGrid'
 import PromotionBanner from '../components/home/PromotionBanner'
-import { brands, categories, products, sizes } from '../data/products'
+import { useProducts } from '../context/ProductContext'
 
 const conditions = ['New', 'Like New', 'Used', 'Refurbished']
 const sortProducts = (items, sort) => [...items].sort((a, b) => sort === 'price-low' ? a.price - b.price : sort === 'price-high' ? b.price - a.price : sort === 'rating' ? b.rating - a.rating : sort === 'discount' ? b.discount - a.discount : sort === 'newest' ? Number(b.newArrival) - Number(a.newArrival) : Number(b.featured) - Number(a.featured))
 export function CatalogPage({ searchMode = false }) {
+  const { products, categories, brands, sizes } = useProducts()
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -37,11 +38,11 @@ export function CatalogPage({ searchMode = false }) {
     if (params.get('maxPrice')) result = result.filter((product) => product.price <= Number(params.get('maxPrice')))
     if (params.get('discount')) result = result.filter((product) => product.discount >= Number(params.get('discount')))
     return sortProducts(result, params.get('sort'))
-  }, [searchMode, query, currentCategory, params])
+  }, [searchMode, query, currentCategory, params, products])
   const title = searchMode ? `Search results${query ? ` for “${query}”` : ''}` : categoryName ? `${categoryName} footwear` : params.get('brand') ? `${params.get('brand')} footwear` : params.get('size') ? `EU ${params.get('size')} footwear` : params.get('condition') ? `${params.get('condition')} footwear` : 'All footwear'
   const filters = <><div className="filter-group"><h3>Category</h3>{categories.map((item) => <label key={item.slug}><input type="checkbox" checked={currentCategory === item.slug} onChange={() => updateParam('category', currentCategory === item.slug ? '' : item.slug)} />{item.name}</label>)}</div>
     <div className="filter-group"><h3>Gender</h3>{['Men', 'Women', 'Unisex'].map((gender) => <label key={gender}><input type="checkbox" checked={params.get('gender') === gender} onChange={() => updateParam('gender', params.get('gender') === gender ? '' : gender)} />{gender}</label>)}</div>
-    <div className="filter-group"><h3>Brand</h3>{brands.map((brand) => <label key={brand}><input type="checkbox" checked={params.get('brand') === brand} onChange={() => updateParam('brand', params.get('brand') === brand ? '' : brand)} />{brand}</label>)}</div>
+    <div className="filter-group"><h3>Brand</h3>{brands.map((brand) => { const name = typeof brand === 'string' ? brand : brand.name; return <label key={name}><input type="checkbox" checked={params.get('brand') === name} onChange={() => updateParam('brand', params.get('brand') === name ? '' : name)} />{name}</label> })}</div>
     <div className="filter-group"><h3>Size (EU)</h3><div className="filter-size-grid">{sizes.map((size) => <button className={params.get('size') === `${size}` ? 'selected' : ''} key={size} onClick={() => updateParam('size', params.get('size') === `${size}` ? '' : `${size}`)}>{size}</button>)}</div></div>
     <div className="filter-group"><h3>Condition</h3>{conditions.map((condition) => <label key={condition}><input type="checkbox" checked={params.get('condition') === condition} onChange={() => updateParam('condition', params.get('condition') === condition ? '' : condition)} />{condition}</label>)}</div>
     <div className="filter-group"><h3>Price range</h3><div className="price-inputs"><label className="sr-only" htmlFor="min-price">Minimum price</label><input id="min-price" inputMode="numeric" placeholder="Min Rs." value={params.get('minPrice') || ''} onChange={(event) => updateParam('minPrice', event.target.value)} /><label className="sr-only" htmlFor="max-price">Maximum price</label><input id="max-price" inputMode="numeric" placeholder="Max Rs." value={params.get('maxPrice') || ''} onChange={(event) => updateParam('maxPrice', event.target.value)} /></div></div>

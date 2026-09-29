@@ -5,11 +5,12 @@ import ProductGrid from '../components/product/ProductGrid'
 import { useCart } from '../context/CartContext'
 import { useUI } from '../context/UIContext'
 import { useWishlist } from '../context/WishlistContext'
-import { products } from '../data/products'
+import { useProducts } from '../context/ProductContext'
 
 const money = (amount) => `Rs. ${amount.toLocaleString('en-PK')}`
 export default function ProductDetails() {
   const { slug } = useParams()
+  const { products } = useProducts()
   const product = products.find((item) => item.slug === slug)
   const [imageIndex, setImageIndex] = useState(0)
   const [size, setSize] = useState('')
