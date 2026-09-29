@@ -27,7 +27,7 @@ function StoreRoutes() {
       <Route path="/shop" element={<CatalogPage />} />
       <Route path="/search" element={<CatalogPage searchMode />} />
       <Route path="/category/:category" element={<CatalogPage />} />
-      <Route path="/product/:slug" element={<ProductDetails />} />
+      <Route path="/product/:id" element={<ProductDetails />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-success" element={<OrderSuccess />} />

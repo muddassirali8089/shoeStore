@@ -20,7 +20,7 @@ npm run build
 
 - `/` — Home
 - `/shop`, `/search`, `/category/:category` — Searchable and filterable catalog
-- `/product/:slug` — Product details
+- `/product/:id` — Product details
 - `/cart`, `/checkout`, `/order-success` — Guest shopping and checkout
 - `/wishlist`, `/track-order` — Guest wishlist and order tracking
 - `/return-policy`, `/shipping-policy`, `/size-guide`, `/contact`, `/about` — Customer support
@@ -38,7 +38,10 @@ Open `/admin/login` or `/login`; both lead to the admin-only sign-in screen. Dem
 - `/admin/orders`, `/admin/orders/:id`
 - `/admin/customers`, `/admin/customers/:id`
 - `/admin/inventory`, `/admin/discounts`, `/admin/settings`
+- `/admin/forgot-password`, `/admin/verify-code`, `/admin/reset-password`
 
-The admin is a frontend-only mock and is not a security boundary.
+Admin products use condition values, selectable size arrays, and up to four browser-selected images. Image files are resized and stored as browser data; there is no upload server. The admin is a frontend-only mock and is not a security boundary.
+
+Password recovery is also a frontend demo: only `admin@example.com` is accepted, the 6-digit code is shown on the verification page instead of being emailed, and it expires after five minutes. The mock password is stored in local storage and should never be treated as real authentication.
 
 Cart, wishlist, product catalog, categories, brands, guest orders, admin session, discounts, and settings use React Context and browser local storage for persistence. Product photography is loaded from Unsplash.

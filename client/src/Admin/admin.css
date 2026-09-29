@@ -351,6 +351,8 @@
 .admin-login-form { max-width: 370px; width: 100%; }
 .admin-login-form h2 { color: #25322a; font: 700 22px "Manrope", sans-serif; letter-spacing: -.04em; margin: 9px 0 6px; }
 .admin-login-subtitle { color: #8b958e; font-size: 11px; margin: 0 0 27px; }
+.admin-login-forgot { color: #326b4f; display: block; font-size: 11px; margin: -4px 0 13px auto; text-align: right; text-decoration: none; width: fit-content; }
+.admin-login-forgot:hover { color: #26583e; text-decoration: underline; }
 .admin-login-form .admin-field { margin: 16px 0; }
 .admin-login-form .admin-field > input { height: 39px; }
 .admin-login-submit { height: 39px; justify-content: space-between; margin-top: 5px; padding: 0 13px; width: 100%; }
@@ -447,4 +449,40 @@
   .admin-sidebar, .admin-topbar, .admin-main-footer, .admin-header-actions, .admin-cancel-order-link { display: none !important; }
   .admin-main { margin: 0; }
   .admin-content { max-width: none; padding: 0; }
+}
+
+.admin-product-table-image { background: #f3f4f2; border: 1px solid var(--ad-line); border-radius: 5px; height: 40px; object-fit: cover; width: 44px; }
+.admin-filter-input { background: #fff; border: 1px solid var(--ad-line-dark); border-radius: 6px; color: #515c55; font-size: 10px; height: 32px; min-width: 85px; padding: 0 8px; width: 95px; }
+.admin-toolbar:has(.admin-filter-input) { align-items: flex-start; }
+.admin-toolbar:has(.admin-filter-input) .admin-toolbar-filters { flex-wrap: wrap; justify-content: flex-end; }
+.admin-product-form { display: flex; flex-direction: column; gap: 12px; }
+.admin-product-form .admin-form-card { margin: 0; }
+.admin-product-form .admin-form-section { padding: 20px 22px; }
+.admin-size-picker { border: 0; display: grid; gap: 9px; grid-template-columns: repeat(6, minmax(40px, 54px)); margin: 0; padding: 0; }
+.admin-size-option { background: #fff; border: 1px solid var(--ad-line-dark); border-radius: 6px; color: #5f6b63; cursor: pointer; font-size: 11px; min-height: 38px; transition: background .15s, border-color .15s, color .15s; }
+.admin-size-option:hover { border-color: #94ad9b; }
+.admin-size-option.selected { background: var(--ad-green-soft); border-color: #77957e; color: var(--ad-green-dark); font-weight: 700; }
+.admin-image-manager { min-width: 0; }
+.admin-image-dropzone { align-items: center; background: #fbfcfb; border: 1px dashed #bdc9bf; border-radius: 8px; color: #69766d; cursor: pointer; display: flex; flex-direction: column; gap: 8px; min-height: 195px; padding: 18px; text-align: center; width: 100%; }
+.admin-image-dropzone:hover { background: #f5f9f5; border-color: #7d9984; }
+.admin-image-dropzone > strong { color: #45544a; font-size: 12px; }
+.admin-image-dropzone > span:not(.admin-image-upload-icon):not(.admin-button) { font-size: 10px; }
+.admin-image-dropzone > small { color: #8e9991; font-size: 9px; }
+.admin-image-upload-icon { align-items: center; background: #edf3ee; border-radius: 50%; color: #587561; display: flex; height: 40px; justify-content: center; width: 40px; }
+.admin-image-preview-grid { display: grid; gap: 11px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 13px; }
+.admin-image-preview { background: #fff; border: 1px solid var(--ad-line); border-radius: 7px; min-width: 0; overflow: hidden; }
+.admin-image-preview > img { aspect-ratio: 1; background: #f3f4f2; object-fit: cover; width: 100%; }
+.admin-image-preview > div { align-items: center; display: flex; flex-wrap: wrap; gap: 5px; justify-content: space-between; padding: 7px; }
+.admin-image-preview > div > strong { color: #526157; font-size: 9px; }
+.admin-image-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 5px; }
+.admin-image-action { background: none; border: 0; color: #557560; cursor: pointer; font-size: 8px; padding: 3px; text-decoration: underline; }
+.admin-image-remove { align-items: center; background: #f8f1f0; border: 0; border-radius: 4px; color: #9c5d56; cursor: pointer; display: inline-flex; height: 23px; justify-content: center; width: 23px; }
+.admin-product-form .admin-form-error { margin: 0; }
+.admin-product-form-footer { align-items: center; display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 620px) {
+  .admin-size-picker { gap: 7px; grid-template-columns: repeat(4, minmax(38px, 1fr)); }
+  .admin-image-preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-product-form .admin-form-section { padding: 16px; }
+  .admin-toolbar:has(.admin-filter-input) .admin-toolbar-filters { justify-content: flex-start; }
+  .admin-filter-input { flex: 1 1 78px; width: 80px; }
 }

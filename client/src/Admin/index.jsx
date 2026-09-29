@@ -1,7 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AdminProvider } from "./AdminContext";
+import { AdminAuthProvider } from "./context/AdminAuthContext";
 import { AdminLayout, AdminLogin, AdminProtectedRoute } from "./AdminLayout";
+import { ForgotPasswordPage, ResetPasswordPage, VerifyCodePage } from "./AdminAuthPages";
 import {
   BrandFormPage, BrandListPage, CategoryFormPage, CategoryListPage, CustomerDetailPage,
   CustomersPage, DashboardPage, DiscountsPage, InventoryPage, OrderDetailPage, OrdersPage,
@@ -13,8 +15,11 @@ import {
  * Admin routes are intentionally separate from the customer storefront layout.
  */
 export function AdminRoutes() {
-  return <AdminProvider><Routes>
+  return <AdminAuthProvider><AdminProvider><Routes>
     <Route path="login" element={<AdminLogin />} />
+    <Route path="forgot-password" element={<ForgotPasswordPage />} />
+    <Route path="verify-code" element={<VerifyCodePage />} />
+    <Route path="reset-password" element={<ResetPasswordPage />} />
     <Route element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
       <Route index element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="dashboard" element={<DashboardPage />} />
@@ -41,9 +46,10 @@ export function AdminRoutes() {
       <Route path="settings" element={<SettingsPage />} />
       <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
     </Route>
-  </Routes></AdminProvider>;
+  </Routes></AdminProvider></AdminAuthProvider>;
 }
 
 export { AdminProvider, useAdmin, money } from "./AdminContext";
+export { AdminAuthProvider, useAdminAuth } from "./context/AdminAuthContext";
 export { AdminLogin, AdminLayout, AdminProtectedRoute } from "./AdminLayout";
 export default AdminRoutes;

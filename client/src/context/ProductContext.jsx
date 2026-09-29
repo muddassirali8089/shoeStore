@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { brands as defaultBrands, categories as defaultCategories, products as defaultProducts, sizes } from '../data/products'
+import { normalizeCondition } from '../components/product/conditionUtils'
 
 const ProductContext = createContext(null)
 const readList = (key, fallback) => {
@@ -13,11 +14,11 @@ const readList = (key, fallback) => {
 }
 
 export function ProductProvider({ children }) {
-  const [products, setProducts] = useState(() => readList('mg-products', defaultProducts))
+  const [products, setProducts] = useState(() => readList('mg-products', defaultProducts).map(normalizeProduct))
   const [categories, setCategories] = useState(() => readList('mg-categories', defaultCategories))
   const [brands, setBrands] = useState(() => readList('mg-brands', defaultBrands))
   useEffect(() => {
-    const syncProducts = () => setProducts(readList('mg-products', defaultProducts))
+    const syncProducts = () => setProducts(readList('mg-products', defaultProducts).map(normalizeProduct))
     const syncCategories = () => setCategories(readList('mg-categories', defaultCategories))
     const syncBrands = () => setBrands(readList('mg-brands', defaultBrands))
     window.addEventListener('storage', syncProducts)
@@ -43,6 +44,17 @@ export function ProductProvider({ children }) {
     sizes,
   }), [products, categories, brands])
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>
+}
+
+function normalizeProduct(product) {
+  const catalogProduct = Object.fromEntries(Object.entries(product).filter(([key]) => key !== 'slug' && key !== 'sku'))
+  return {
+    ...catalogProduct,
+    condition: normalizeCondition(product.condition),
+    sizes: Array.isArray(product.sizes) ? product.sizes.map(Number).filter((size) => sizes.includes(size)) : [],
+    images: Array.isArray(product.images) ? product.images.filter(Boolean).slice(0, 4) : [],
+    thumbnail: product.thumbnail || product.images?.[0] || '',
+  }
 }
 
 export const useProducts = () => useContext(ProductContext)

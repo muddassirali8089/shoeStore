@@ -27,36 +27,35 @@ const productPhotos = [
 ]
 
 const catalog = [
-  ['Cloudrunner Everyday Sneaker', 'On', 'Running', 'Men', 18400, 22900, 'Like New', 'photo-1542291026-7eec264c27ff'],
-  ['Air Zoom Pegasus 40', 'Nike', 'Running', 'Men', 21900, 27900, 'New', 'photo-1542291026-7eec264c27ff'],
-  ['Gazelle Indoor', 'Adidas', 'Casual', 'Women', 16800, 21000, 'New', 'photo-1525966222134-fcfa99b8ae77'],
-  ['Chuck 70 High Top', 'Converse', 'Casual', 'Unisex', 14500, 18900, 'Like New', 'photo-1495555961986-6d4c1ecb7be3'],
-  ['574 Core Sneaker', 'New Balance', 'Casual', 'Men', 19500, 24500, 'New', 'photo-1539185441755-769473a23570'],
-  ['Classic Leather', 'Reebok', 'Casual', 'Women', 13900, 17900, 'Like New', 'photo-1542291026-7eec264c27ff'],
-  ['Terrex Trail Hiking', 'Adidas', 'Hiking', 'Men', 24900, 31900, 'New', 'photo-1551632811-561732d1e306'],
-  ['Speedcross 6 Trail', 'Salomon', 'Hiking', 'Unisex', 28900, 34900, 'New', 'photo-1551632811-561732d1e306'],
-  ['Air Force 1 Low', 'Nike', 'Casual', 'Women', 22900, 27900, 'New', 'photo-1542291026-7eec264c27ff'],
-  ['Ultraboost Light', 'Adidas', 'Running', 'Men', 29900, 36900, 'New', 'photo-1539185441755-769473a23570'],
-  ['574 Vintage Pack', 'New Balance', 'Sports', 'Women', 15900, 20900, 'Used', 'photo-1539185441755-769473a23570'],
-  ['Gel-Kayano 30', 'ASICS', 'Running', 'Men', 26900, 32900, 'New', 'photo-1542291026-7eec264c27ff'],
-  ['Old Skool Classic', 'Vans', 'Casual', 'Unisex', 13500, 16900, 'Like New', 'photo-1495555961986-6d4c1ecb7be3'],
-  ['Fresh Foam 1080', 'New Balance', 'Running', 'Women', 25900, 31900, 'New', 'photo-1539185441755-769473a23570'],
-  ['Court Legacy Lift', 'Nike', 'Casual', 'Women', 17400, 21900, 'Like New', 'photo-1525966222134-fcfa99b8ae77'],
-  ['Moab 3 Hiking Shoe', 'Merrell', 'Hiking', 'Men', 23500, 28900, 'New', 'photo-1551632811-561732d1e306'],
-  ['Superstar Original', 'Adidas', 'Casual', 'Unisex', 18900, 23900, 'New', 'photo-1525966222134-fcfa99b8ae77'],
-  ['Pegasus Trail 4', 'Nike', 'Hiking', 'Women', 22500, 27900, 'Refurbished', 'photo-1551632811-561732d1e306'],
-  ['Gel-1130 Retro', 'ASICS', 'Sports', 'Unisex', 17900, 22900, 'New', 'photo-1542291026-7eec264c27ff'],
-  ['Classic Club C 85', 'Reebok', 'Casual', 'Men', 14900, 18900, 'Used', 'photo-1495555961986-6d4c1ecb7be3'],
-  ['Cloud 5 Waterproof', 'On', 'Hiking', 'Women', 27800, 33900, 'New', 'photo-1551632811-561732d1e306'],
-  ['Air Max Excee', 'Nike', 'Sports', 'Men', 19900, 24900, 'Like New', 'photo-1542291026-7eec264c27ff'],
-  ['Forum Low Classic', 'Adidas', 'Sports', 'Women', 18500, 23900, 'New', 'photo-1525966222134-fcfa99b8ae77'],
-  ['574 Rugged', 'New Balance', 'Hiking', 'Men', 20900, 26900, 'Refurbished', 'photo-1551632811-561732d1e306'],
+  ['Cloudrunner Everyday Sneaker', 'On', 'Running', 'Men', 18400, 22900, 'Premium 10/10', 'photo-1542291026-7eec264c27ff'],
+  ['Air Zoom Pegasus 40', 'Nike', 'Running', 'Men', 21900, 27900, 'BrandNew', 'photo-1542291026-7eec264c27ff'],
+  ['Gazelle Indoor', 'Adidas', 'Casual', 'Women', 16800, 21000, 'BrandNew', 'photo-1525966222134-fcfa99b8ae77'],
+  ['Chuck 70 High Top', 'Converse', 'Casual', 'Unisex', 14500, 18900, 'Premium 10/10', 'photo-1495555961986-6d4c1ecb7be3'],
+  ['574 Core Sneaker', 'New Balance', 'Casual', 'Men', 19500, 24500, 'BrandNew', 'photo-1539185441755-769473a23570'],
+  ['Classic Leather', 'Reebok', 'Casual', 'Women', 13900, 17900, 'Premium 10/10', 'photo-1542291026-7eec264c27ff'],
+  ['Terrex Trail Hiking', 'Adidas', 'Hiking', 'Men', 24900, 31900, 'BrandNew', 'photo-1551632811-561732d1e306'],
+  ['Speedcross 6 Trail', 'Salomon', 'Hiking', 'Unisex', 28900, 34900, 'BrandNew', 'photo-1551632811-561732d1e306'],
+  ['Air Force 1 Low', 'Nike', 'Casual', 'Women', 22900, 27900, 'BrandNew', 'photo-1542291026-7eec264c27ff'],
+  ['Ultraboost Light', 'Adidas', 'Running', 'Men', 29900, 36900, 'BrandNew', 'photo-1539185441755-769473a23570'],
+  ['574 Vintage Pack', 'New Balance', 'Sports', 'Women', 15900, 20900, 'Used 7/10', 'photo-1539185441755-769473a23570'],
+  ['Gel-Kayano 30', 'ASICS', 'Running', 'Men', 26900, 32900, 'BrandNew', 'photo-1542291026-7eec264c27ff'],
+  ['Old Skool Classic', 'Vans', 'Casual', 'Unisex', 13500, 16900, 'Premium 10/10', 'photo-1495555961986-6d4c1ecb7be3'],
+  ['Fresh Foam 1080', 'New Balance', 'Running', 'Women', 25900, 31900, 'BrandNew', 'photo-1539185441755-769473a23570'],
+  ['Court Legacy Lift', 'Nike', 'Casual', 'Women', 17400, 21900, 'Premium 10/10', 'photo-1525966222134-fcfa99b8ae77'],
+  ['Moab 3 Hiking Shoe', 'Merrell', 'Hiking', 'Men', 23500, 28900, 'BrandNew', 'photo-1551632811-561732d1e306'],
+  ['Superstar Original', 'Adidas', 'Casual', 'Unisex', 18900, 23900, 'BrandNew', 'photo-1525966222134-fcfa99b8ae77'],
+  ['Pegasus Trail 4', 'Nike', 'Hiking', 'Women', 22500, 27900, 'Good 8/10', 'photo-1551632811-561732d1e306'],
+  ['Gel-1130 Retro', 'ASICS', 'Sports', 'Unisex', 17900, 22900, 'BrandNew', 'photo-1542291026-7eec264c27ff'],
+  ['Classic Club C 85', 'Reebok', 'Casual', 'Men', 14900, 18900, 'Used 7/10', 'photo-1495555961986-6d4c1ecb7be3'],
+  ['Cloud 5 Waterproof', 'On', 'Hiking', 'Women', 27800, 33900, 'BrandNew', 'photo-1551632811-561732d1e306'],
+  ['Air Max Excee', 'Nike', 'Sports', 'Men', 19900, 24900, 'Premium 10/10', 'photo-1542291026-7eec264c27ff'],
+  ['Forum Low Classic', 'Adidas', 'Sports', 'Women', 18500, 23900, 'BrandNew', 'photo-1525966222134-fcfa99b8ae77'],
+  ['574 Rugged', 'New Balance', 'Hiking', 'Men', 20900, 26900, 'Good 8/10', 'photo-1551632811-561732d1e306'],
 ]
 
 export const products = catalog.map(([name, brand, category, gender, price, originalPrice, condition], index) => ({
   id: `shoe-${index + 1}`,
   name,
-  slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-$/, ''),
   brand,
   category,
   gender,
@@ -65,7 +64,7 @@ export const products = catalog.map(([name, brand, category, gender, price, orig
   discount: Math.round((1 - price / originalPrice) * 100),
   images: [photo(productPhotos[index]), photo(productPhotos[(index + 1) % productPhotos.length])],
   thumbnail: photo(productPhotos[index], 600),
-  sizes: [36, 37, 38, 39, 40, 41, 42, 43, 44].filter((size) => (size + index) % 5 !== 0),
+  sizes: [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46].filter((size) => (size + index) % 5 !== 0),
   colors: ['White / Grey', 'Black', 'Sandstone'],
   condition,
   description: `Designed for all-day comfort, the ${name} pairs dependable construction with an easy-to-wear silhouette. A versatile everyday favorite, ready for your next move.`,
@@ -87,7 +86,7 @@ export const categories = [
 ]
 
 export const brands = ['Nike', 'Adidas', 'New Balance', 'On', 'ASICS', 'Converse', 'Reebok', 'Salomon']
-export const sizes = [36, 37, 38, 39, 40, 41, 42, 43, 44]
+export const sizes = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46]
 
 export const orders = [
   { id: 'MG-24091852', date: 'Sep 18, 2026', status: 'Shipped', total: 40300, items: [{ productId: 'shoe-2', quantity: 1 }, { productId: 'shoe-4', quantity: 1 }] },

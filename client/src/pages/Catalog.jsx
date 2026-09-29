@@ -5,7 +5,7 @@ import ProductGrid from '../components/product/ProductGrid'
 import PromotionBanner from '../components/home/PromotionBanner'
 import { useProducts } from '../context/ProductContext'
 
-const conditions = ['New', 'Like New', 'Used', 'Refurbished']
+const conditions = ['BrandNew', 'Premium 10/10', 'Excellent 9/10', 'Good 8/10', 'Used 7/10']
 const sortProducts = (items, sort) => [...items].sort((a, b) => sort === 'price-low' ? a.price - b.price : sort === 'price-high' ? b.price - a.price : sort === 'rating' ? b.rating - a.rating : sort === 'discount' ? b.discount - a.discount : sort === 'newest' ? Number(b.newArrival) - Number(a.newArrival) : Number(b.featured) - Number(a.featured))
 export function CatalogPage({ searchMode = false }) {
   const { products, categories, brands, sizes } = useProducts()

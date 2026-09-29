@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { NavLink, Outlet, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, Outlet, Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3, Boxes, ChevronDown, CircleHelp, ClipboardList,
   LayoutDashboard, LogOut, Package, Percent, Settings, ShieldCheck, ShoppingBag, Tags, Users,
 } from "lucide-react";
 import { useAdmin } from "./AdminContext";
+import { useAdminAuth } from "./context/AdminAuthContext";
 import { Field, ToastViewport } from "./AdminUI";
 import "./admin.css";
 
@@ -25,36 +26,49 @@ const navigation = [
 ];
 
 export function AdminProtectedRoute({ children }) {
-  const { authenticated } = useAdmin();
+  const { isAdminAuthenticated } = useAdminAuth();
   const location = useLocation();
-  return authenticated ? children : <Navigate to="/admin/login" replace state={{ from: location }} />;
+  return isAdminAuthenticated ? children : <Navigate to="/admin/login" replace state={{ from: location }} />;
 }
 
 export function AdminLogin() {
-  const { login, notify } = useAdmin();
+  const { notify, toast } = useAdmin();
+  const { loginAdmin } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState("");
   const [email, setEmail] = useState("admin@example.com");
   const [password, setPassword] = useState("");
+  useEffect(() => {
+    if (location.state?.notice) {
+      notify(location.state.notice);
+      navigate(location.pathname, { replace: true, state: location.state.from ? { from: location.state.from } : null });
+    }
+  }, [location.pathname, location.state, navigate, notify]);
   function submit(event) {
     event.preventDefault();
     if (!email.trim() || !password) { setError("Enter your email and password to continue."); return; }
-    if (!login(email, password)) { setError("That email and password combination isn’t recognized."); return; }
+    const result = loginAdmin(email, password);
+    if (result === null) { setError("Your browser could not save the admin session. Check your storage settings and try again."); return; }
+    if (!result) { setError("That email and password combination isn’t recognized."); return; }
     notify("Welcome back. You’re signed in to the admin workspace.");
     navigate(location.state?.from?.pathname || "/admin/dashboard", { replace: true });
   }
-  return <main className="admin-login-shell"><section className="admin-login-art"><div className="admin-login-brand"><span className="admin-logo-mark"><ShoppingBag size={18} /></span>morrow<span>goods</span></div><div className="admin-login-art-copy"><div className="admin-eyebrow">THE MORROW WORKSPACE</div><h1>Good things<br />start behind<br />the scenes.</h1><p>One calm, clear place to run your store.</p></div><div className="admin-login-art-footer"><span>MG / ADMINISTRATION</span><span>01 — 09</span></div></section><section className="admin-login-panel"><form onSubmit={submit} className="admin-login-form"><div className="admin-eyebrow">WELCOME BACK</div><h2>Sign in to your workspace</h2><p className="admin-login-subtitle">Enter your admin credentials to continue.</p>{error && <div className="admin-form-error" role="alert">{error}</div>}<Field label="Email address" type="email" autoComplete="username" value={email} onChange={(event) => { setEmail(event.target.value); setError(""); }} required /><Field label="Password" type="password" autoComplete="current-password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} required /><button className="admin-button admin-button-primary admin-login-submit" type="submit">Sign in <span>→</span></button><div className="admin-login-credentials"><ShieldCheck size={16} /><span><strong>Demo access</strong> · admin@example.com / admin123</span></div></form><footer>© 2026 Morrow Goods <span>·</span> Private admin workspace</footer><ToastViewport toast={useAdmin().toast} /></section></main>;
+  return <main className="admin-login-shell"><section className="admin-login-art"><div className="admin-login-brand"><span className="admin-logo-mark"><ShoppingBag size={18} /></span>morrow<span>goods</span></div><div className="admin-login-art-copy"><div className="admin-eyebrow">THE MORROW WORKSPACE</div><h1>Good things<br />start behind<br />the scenes.</h1><p>One calm, clear place to run your store.</p></div><div className="admin-login-art-footer"><span>MG / ADMINISTRATION</span><span>01 — 09</span></div></section><section className="admin-login-panel"><form onSubmit={submit} className="admin-login-form"><div className="admin-eyebrow">WELCOME BACK</div><h2>Sign in to your workspace</h2><p className="admin-login-subtitle">Enter your admin credentials to continue.</p>{error && <div className="admin-form-error" role="alert">{error}</div>}<Field label="Email address" type="email" autoComplete="username" value={email} onChange={(event) => { setEmail(event.target.value); setError(""); }} required /><Field label="Password" type="password" autoComplete="current-password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} required /><Link className="admin-login-forgot" to="/admin/forgot-password">Forgot Password?</Link><button className="admin-button admin-button-primary admin-login-submit" type="submit">Sign in <span>→</span></button><div className="admin-login-credentials"><ShieldCheck size={16} /><span><strong>Initial demo access</strong> · admin@example.com / admin123</span></div></form><footer>© 2026 Morrow Goods <span>·</span> Private admin workspace</footer><ToastViewport toast={toast} /></section></main>;
 }
 
 export function AdminLayout() {
-  const { orders, logout, notify } = useAdmin();
+  const { orders, notify } = useAdmin();
+  const { logoutAdmin } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const pending = orders.filter((order) => ["Processing", "Confirmed"].includes(order.status)).length;
   function signOut() {
-    logout();
+    if (!logoutAdmin()) {
+      notify("Your browser could not clear the admin session. Check your storage settings and try again.", "error");
+      return;
+    }
     notify("You have been signed out.");
     navigate("/admin/login");
   }

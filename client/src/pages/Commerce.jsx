@@ -11,7 +11,7 @@ const money = (amount) => `Rs. ${amount.toLocaleString('en-PK')}`
 function CartItem({ item, product, cart }) {
   const { notify } = useUI()
   const { addToWishlist } = useWishlist()
-  return <article className="cart-item"><Link to={`/product/${product.slug}`}><img src={product.thumbnail} alt={product.name} /></Link><div className="cart-item-info"><span className="eyebrow">{product.brand}</span><Link to={`/product/${product.slug}`} className="cart-item-title">{product.name}</Link><span className="cart-item-meta">EU {item.size} <span>·</span> {product.condition}</span><div className="cart-item-mobile-row"><div className="quantity-control"><button aria-label="Decrease quantity" onClick={() => cart.updateQuantity(item.key, item.quantity - 1)}><Minus size={13} /></button><span>{item.quantity}</span><button aria-label="Increase quantity" onClick={() => cart.updateQuantity(item.key, item.quantity + 1)}><Plus size={13} /></button></div><b>{money(product.price * item.quantity)}</b></div><button className="cart-item-save" onClick={() => { addToWishlist(product.id); notify('Added to wishlist.') }}><Heart size={12} /> Save for later</button></div><b className="cart-item-price">{money(product.price * item.quantity)}</b><button className="remove-item" aria-label={`Remove ${product.name}`} onClick={() => { cart.removeFromCart(item.key); notify('Product removed from your bag.') }}><Trash2 size={16} /></button></article>
+  return <article className="cart-item"><Link to={`/product/${product.id}`}><img src={product.thumbnail} alt={product.name} /></Link><div className="cart-item-info"><span className="eyebrow">{product.brand}</span><Link to={`/product/${product.id}`} className="cart-item-title">{product.name}</Link><span className="cart-item-meta">EU {item.size} <span>·</span> {product.condition}</span><div className="cart-item-mobile-row"><div className="quantity-control"><button aria-label="Decrease quantity" onClick={() => cart.updateQuantity(item.key, item.quantity - 1)}><Minus size={13} /></button><span>{item.quantity}</span><button aria-label="Increase quantity" onClick={() => cart.updateQuantity(item.key, item.quantity + 1)}><Plus size={13} /></button></div><b>{money(product.price * item.quantity)}</b></div><button className="cart-item-save" onClick={() => { addToWishlist(product.id); notify('Added to wishlist.') }}><Heart size={12} /> Save for later</button></div><b className="cart-item-price">{money(product.price * item.quantity)}</b><button className="remove-item" aria-label={`Remove ${product.name}`} onClick={() => { cart.removeFromCart(item.key); notify('Product removed from your bag.') }}><Trash2 size={16} /></button></article>
 }
 
 function Summary({ cart, checkout = false, placing = false }) {
@@ -43,7 +43,7 @@ export function CheckoutPage() {
       const product = allProducts.find((entry) => entry.id === item.productId)
       return {
         ...item,
-        productSnapshot: product ? { id: product.id, name: product.name, slug: product.slug, brand: product.brand, category: product.category, thumbnail: product.thumbnail } : null,
+        productSnapshot: product ? { id: product.id, name: product.name, brand: product.brand, category: product.category, thumbnail: product.thumbnail } : null,
         unitPrice: product?.price ?? item.price,
       }
     })

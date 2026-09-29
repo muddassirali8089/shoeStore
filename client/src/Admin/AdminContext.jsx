@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { brands as customerBrands, categories as customerCategories, products as customerProducts } from "../data/products";
+import { normalizeCondition } from "../components/product/conditionUtils";
 
 const AdminContext = createContext(null);
 const storageKeys = {
@@ -10,7 +11,6 @@ const storageKeys = {
   orders: "mg-orders",
   discounts: "mg-discounts",
   settings: "mg-settings",
-  auth: "mg-admin",
 };
 
 const extraCatalog = [
@@ -22,22 +22,24 @@ const extraCatalog = [
   ["XT-6 Advanced", "Salomon", "Hiking", "Unisex", 31900, "photo-1551632811-561732d1e306"],
 ];
 const slug = (value = "") => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const stripProductIdentifiers = (product) => Object.fromEntries(Object.entries(product).filter(([key]) => key !== "slug" && key !== "sku"));
 const extras = extraCatalog.map(([name, brand, category, gender, price, photo], index) => ({
-  id: `admin-shoe-${index + 1}`, name, slug: slug(name), brand, category, gender, price,
+  id: `admin-shoe-${index + 1}`, name, brand, category, gender, price,
   originalPrice: Math.round(price * 1.2), discount: 17,
   images: [`https://images.unsplash.com/${photo}?auto=format&fit=crop&w=900&q=85`],
   thumbnail: `https://images.unsplash.com/${photo}?auto=format&fit=crop&w=600&q=85`,
   sizes: [36, 37, 38, 39, 40, 41, 42, 43, 44], colors: ["White / Grey", "Black"],
-  condition: "New", description: `${name} — dependable comfort for wherever the day takes you.`,
+  condition: "BrandNew", description: `${name} — dependable comfort for wherever the day takes you.`,
   features: ["Comfort cushioning", "Durable outsole"], stock: 7 + index * 3, rating: 4.6,
   reviewsCount: 20 + index * 9, featured: index < 2, bestseller: index % 2 === 0,
-  newArrival: index > 3, sku: `MG-${String(index + 25).padStart(4, "0")}`, status: "Active", active: true,
+  newArrival: index > 3, status: "Active", active: true,
 }));
 const productSeed = [...customerProducts.map((product, index) => ({
-  ...product,
-  sku: `MG-${String(index + 1).padStart(4, "0")}`,
+  ...stripProductIdentifiers(product),
+  condition: normalizeCondition(product.condition),
   status: product.stock === 0 ? "Draft" : "Active",
   active: product.stock > 0,
+  sizes: [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46].filter((size) => (size + index) % 5 !== 0),
 })), ...extras];
 
 const categorySeed = [
@@ -152,9 +154,12 @@ const normalizeOrder = (order, index) => {
 
 export function AdminProvider({ children }) {
   const [products, setProducts] = useState(() => readStorage(storageKeys.products, productSeed, (data) => mergeSeedRows(
-    asList(data, productSeed).map((product, index) => ({
-      ...product,
-      sku: product.sku || `MG-${String(index + 1).padStart(4, "0")}`,
+    asList(data, productSeed).map((product) => ({
+      ...stripProductIdentifiers(product),
+      condition: normalizeCondition(product.condition),
+      sizes: Array.isArray(product.sizes) ? product.sizes.map(Number).filter((size) => size >= 36 && size <= 46) : [],
+      images: Array.isArray(product.images) ? product.images.filter(Boolean).slice(0, 4) : [],
+      thumbnail: product.thumbnail || product.images?.[0] || "",
       status: product.status || (product.active === false || Number(product.stock) <= 0 ? "Draft" : "Active"),
       active: product.active !== undefined ? product.active : Number(product.stock) > 0,
     })),
@@ -177,7 +182,6 @@ export function AdminProvider({ children }) {
     { id: "disc-run", code: "RUN1500", type: "Fixed amount", value: 1500, status: "Active", usageLimit: 150, uses: 38, startsAt: "2026-09-01", endsAt: "2026-11-30" },
   ], (data) => asList(data, [])));
   const [settings, setSettings] = useState(() => readStorage(storageKeys.settings, defaultSettings, (data) => ({ ...defaultSettings, ...data })));
-  const [authenticated, setAuthenticated] = useState(() => readStorage(storageKeys.auth, false, (data) => data === true));
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -221,16 +225,6 @@ export function AdminProvider({ children }) {
   const updateOrders = useCallback((value) => commit("orders", setOrders, value), [commit]);
   const updateDiscounts = useCallback((value) => commit("discounts", setDiscounts, value), [commit]);
   const updateSettings = useCallback((value) => commit("settings", setSettings, value), [commit]);
-  const login = useCallback((email, password) => {
-    if (email.trim().toLowerCase() !== "admin@example.com" || password !== "admin123") return false;
-    saveStorage(storageKeys.auth, true);
-    setAuthenticated(true);
-    return true;
-  }, []);
-  const logout = useCallback(() => {
-    saveStorage(storageKeys.auth, false);
-    setAuthenticated(false);
-  }, []);
   const notify = useCallback((message, type = "success") => {
     setToast({ message, type, id: Date.now() });
   }, []);
@@ -240,10 +234,10 @@ export function AdminProvider({ children }) {
     return () => window.clearTimeout(timer);
   }, [toast]);
   const value = useMemo(() => ({
-    products, categories, brands, orders, discounts, settings, authenticated, toast,
+    products, categories, brands, orders, discounts, settings, toast,
     updateProducts, updateCategories, updateBrands, updateOrders, updateDiscounts, updateSettings,
-    login, logout, notify,
-  }), [products, categories, brands, orders, discounts, settings, authenticated, toast, updateProducts, updateCategories, updateBrands, updateOrders, updateDiscounts, updateSettings, login, logout, notify]);
+    notify,
+  }), [products, categories, brands, orders, discounts, settings, toast, updateProducts, updateCategories, updateBrands, updateOrders, updateDiscounts, updateSettings, notify]);
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 }
 
