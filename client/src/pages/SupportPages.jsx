@@ -30,5 +30,5 @@ export function AboutPage() {
 }
 
 export function NotFoundPage() {
-  return <main className="not-found"><span className="not-found-number">4004</span><span className="eyebrow">THIS PAGE TOOK A WRONG TURN</span><h1>Page not found.</h1><p>The page you’re looking for might have moved on. The good shoes are still right here.</p><Link className="button button-dark" to="/">Back to home <ArrowRight size={16} /></Link></main>
+  return <main className="not-found"><span className="not-found-number">404</span><span className="eyebrow">THIS PAGE TOOK A WRONG TURN</span><h1>Page not found.</h1><p>The page you’re looking for might have moved on. The good shoes are still right here.</p><Link className="button button-dark" to="/">Back to home <ArrowRight size={16} /></Link></main>
 }
