@@ -154,15 +154,26 @@ const normalizeOrder = (order, index) => {
 
 export function AdminProvider({ children }) {
   const [products, setProducts] = useState(() => readStorage(storageKeys.products, productSeed, (data) => mergeSeedRows(
-    asList(data, productSeed).map((product) => ({
-      ...stripProductIdentifiers(product),
-      condition: normalizeCondition(product.condition),
-      sizes: Array.isArray(product.sizes) ? product.sizes.map(Number).filter((size) => size >= 36 && size <= 46) : [],
-      images: Array.isArray(product.images) ? product.images.filter(Boolean).slice(0, 4) : [],
-      thumbnail: product.thumbnail || product.images?.[0] || "",
-      status: product.status || (product.active === false || Number(product.stock) <= 0 ? "Draft" : "Active"),
-      active: product.active !== undefined ? product.active : Number(product.stock) > 0,
-    })),
+    asList(data, productSeed).map((product) => {
+      const sizes = Array.isArray(product.sizes) ? product.sizes.map((entry) => typeof entry === "object" && entry !== null
+        ? { ...entry, size: Number(entry.size), quantity: Number(entry.quantity) }
+        : Number(entry)).filter((entry) => typeof entry === "object"
+        ? Number.isInteger(entry.size) && entry.size >= 36 && entry.size <= 46 && Number.isInteger(entry.quantity) && entry.quantity > 0
+        : entry >= 36 && entry <= 46) : [];
+      const stock = sizes.length && sizes.every((entry) => typeof entry === "object")
+        ? sizes.reduce((total, entry) => total + entry.quantity, 0)
+        : Number(product.stock) || 0;
+      return {
+        ...stripProductIdentifiers(product),
+        condition: normalizeCondition(product.condition),
+        sizes,
+        stock,
+        images: Array.isArray(product.images) ? product.images.filter(Boolean).slice(0, 4) : [],
+        thumbnail: product.thumbnail || product.images?.[0] || "",
+        status: product.status || (product.active === false || stock <= 0 ? "Draft" : "Active"),
+        active: product.active !== undefined ? product.active : stock > 0,
+      };
+    }),
     productSeed,
   )));
   const [categories, setCategories] = useState(() => readStorage(storageKeys.categories, categorySeed, (data) => mergeSeedRows(data, categorySeed)));

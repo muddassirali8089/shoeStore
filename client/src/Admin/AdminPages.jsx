@@ -22,6 +22,7 @@ const fullName = (customer = {}) => customer.fullName || [customer.firstName, cu
 const customerInitials = (customer = {}) => fullName(customer).split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 const productStatus = (product) => product.status || (Number(product.stock) > 0 ? "Active" : "Draft");
 const productImage = (product) => product.thumbnail || product.images?.[0] || "";
+const productSizes = (product) => (product.sizes || []).map((entry) => Number(typeof entry === "object" ? entry.size : entry));
 const fallbackPhoto = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=100&q=80";
 const availableShoeSizes = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
 const stripProductIdentifiers = (product) => Object.fromEntries(Object.entries(product).filter(([key]) => key !== "slug" && key !== "sku"));
@@ -86,7 +87,7 @@ function CatalogList({ kind }) {
     if (categoryFilter && item.category !== categoryFilter) return false;
     if (brandFilter && item.brand !== brandFilter) return false;
     if (conditionFilter && normalizeCondition(item.condition) !== conditionFilter) return false;
-    if (sizeFilter && !item.sizes?.map(Number).includes(Number(sizeFilter))) return false;
+    if (sizeFilter && !productSizes(item).includes(Number(sizeFilter))) return false;
     if (stockFilter === "In stock" && Number(item.stock) <= 10) return false;
     if (stockFilter === "Low stock" && (Number(item.stock) < 1 || Number(item.stock) > 10)) return false;
     if (stockFilter === "Out of stock" && Number(item.stock) !== 0) return false;
@@ -110,7 +111,7 @@ function CatalogList({ kind }) {
     { key: "name", label: "Product", searchValue: (p) => `${p.name} ${p.brand} ${p.category}`, render: (p) => <div className="admin-product-cell"><span><strong>{p.name}</strong><small>{p.brand}</small></span></div> },
     { key: "brand", label: "Brand" }, { key: "category", label: "Category" },
     { key: "condition", label: "Condition", render: (p) => <ConditionBadge condition={p.condition} /> },
-    { key: "sizes", label: "Sizes", searchValue: (p) => (p.sizes || []).join(" "), render: (p) => (p.sizes || []).join(", ") || "—" },
+    { key: "sizes", label: "Sizes", searchValue: (p) => productSizes(p).join(" "), render: (p) => productSizes(p).join(", ") || "—" },
     { key: "price", label: "Price", align: "right", sortValue: (p) => Number(p.price), render: (p) => moneyCell(p.price) },
     { key: "stock", label: "Stock", align: "right", render: (p) => <span className={p.stock <= 10 ? "admin-stock-low" : "admin-stock-good"}>{p.stock} in stock</span> },
     { key: "status", label: "Status", render: (p) => <StatusBadge>{productStatus(p)}</StatusBadge> }, actionColumn,
@@ -134,11 +135,24 @@ function ProductForm() {
   const navigate = useNavigate();
   const { products, categories, brands, updateProducts, notify } = useAdmin();
   const item = id ? products.find((entry) => String(entry.id) === decodeURIComponent(id)) : null;
-  const [form, setForm] = useState(() => item ? { ...item, condition: normalizeCondition(item.condition) } : {
-    name: "", brand: "", category: "", gender: "Unisex", condition: "BrandNew",
-    description: "", price: "", originalPrice: "", discount: 0, sizes: [],
-    stock: 0, colors: [], features: [], status: "Active", rating: 4.5,
+  const [form, setForm] = useState(() => {
+    if (!item) return {
+      name: "", brand: "", category: "", gender: "Unisex", condition: "BrandNew",
+      description: "", price: "", originalPrice: "", discount: 0, sizes: [],
+      colors: [], features: [], status: "Active", rating: 4.5,
+    };
+    const initial = {
+      ...item,
+      condition: normalizeCondition(item.condition),
+      sizes: (item.sizes || []).map((entry) => typeof entry === "object"
+        ? { size: entry.size, quantity: entry.quantity ?? "" }
+        : { size: entry, quantity: "" }),
+    };
+    delete initial.stock;
+    return initial;
   });
+  const [catalogFormKind, setCatalogFormKind] = useState(null);
+  const [showSizeErrors, setShowSizeErrors] = useState(false);
   const [imageEntries, setImageEntries] = useState(() => (item?.images || (item?.thumbnail ? [item.thumbnail] : [])).slice(0, 4).map((value) => ({ preview: value, value })));
   const [error, setError] = useState("");
   const fileInput = useRef(null);
@@ -211,17 +225,31 @@ function ProductForm() {
     });
   }
 
-  function toggleSize(size) {
-    const current = form.sizes || [];
-    set("sizes", current.includes(size) ? current.filter((value) => value !== size) : [...current, size].sort((a, b) => a - b));
+  function updateSize(index, key, value) {
+    set("sizes", (form.sizes || []).map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
     setError("");
   }
 
+  function sizeError(index) {
+    const row = form.sizes[index];
+    const size = Number(row.size);
+    const quantity = Number(row.quantity);
+    if (!row.size || !availableShoeSizes.includes(size)) return "Select a valid shoe size.";
+    if (form.sizes.some((other, rowIndex) => rowIndex !== index && Number(other.size) === size)) return "Each size can only be added once.";
+    if (row.quantity === "" || row.quantity === null || row.quantity === undefined) return "Enter a quantity for this size.";
+    if (!Number.isInteger(quantity) || quantity <= 0) return "Quantity must be a positive whole number.";
+    return "";
+  }
+
+  const totalStock = (form.sizes || []).reduce((total, row) => total + (Number(row.quantity) || 0), 0);
+
   function submit(event) {
     event.preventDefault();
+    setShowSizeErrors(true);
     const name = String(form.name || "").trim();
     if (!name) { setError("Enter a product name."); return; }
-    if (!form.sizes?.length) { setError("Please select at least one available size."); return; }
+    if (!form.sizes?.length) { setError("Add at least one size and quantity."); return; }
+    if (form.sizes.some((_, index) => sizeError(index))) { setError("Fix the missing or invalid size quantities before saving."); return; }
     if (!imageEntries.length) { setError("Upload at least one product image."); return; }
     if (products.some((product) => product.id !== item?.id && product.name.trim().toLowerCase() === name.toLowerCase())) {
       setError("A product with this name already exists.");
@@ -229,8 +257,8 @@ function ProductForm() {
     }
     const price = Math.round(Number(form.price));
     const originalPrice = Math.round(Number(form.originalPrice) || price);
-    if (!Number.isFinite(price) || price <= 0 || Number(form.stock) < 0) {
-      setError("Enter a valid price and stock quantity.");
+    if (!Number.isFinite(price) || price <= 0) {
+      setError("Enter a valid price.");
       return;
     }
     const existing = item ? stripProductIdentifiers(item) : {};
@@ -244,8 +272,8 @@ function ProductForm() {
       price,
       originalPrice,
       discount: originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0,
-      stock: Math.floor(Number(form.stock) || 0),
-      sizes: [...form.sizes].map(Number).sort((a, b) => a - b),
+      stock: totalStock,
+      sizes: form.sizes.map((row) => ({ size: Number(row.size), quantity: Number(row.quantity) })).sort((a, b) => a.size - b.size),
       images,
       thumbnail: images[0],
       colors: Array.isArray(form.colors) ? form.colors : String(form.colors || "").split(",").map((value) => value.trim()).filter(Boolean),
@@ -269,8 +297,8 @@ function ProductForm() {
   return <><PageHeader eyebrow={`PRODUCTS / ${item ? "EDIT" : "NEW"}`} title={`${item ? "Edit" : "Add"} product`} description="Add the details, sizes, and condition for this pair." actions={<Button variant="subtle" onClick={() => navigate("/admin/products/list")}><ChevronLeft size={16} /> Back to products</Button>} /><form className="admin-product-form" onSubmit={submit}>
     <section className="admin-form-card"><div className="admin-form-section"><div className="admin-form-section-title"><h2>Product information</h2><p>Core details displayed to shoppers.</p></div><div className="admin-form-fields">
       <Field className="admin-full-field" label="Product name" value={form.name || ""} onChange={(event) => set("name", event.target.value)} required />
-      <Field label="Brand"><select value={form.brand || ""} onChange={(event) => set("brand", event.target.value)} required><option value="">Select brand</option>{brands.filter((brand) => typeof brand === "string" || brand.active !== false).map((brand) => <option key={typeof brand === "string" ? brand : brand.id} value={typeof brand === "string" ? brand : brand.name}>{typeof brand === "string" ? brand : brand.name}</option>)}</select></Field>
-      <Field label="Category"><select value={form.category || ""} onChange={(event) => set("category", event.target.value)} required><option value="">Select category</option>{categories.filter((category) => category.active !== false).map((category) => <option key={category.id || category.slug} value={category.name}>{category.name}</option>)}</select></Field>
+      <div className="admin-catalog-field"><Field label="Brand"><select value={form.brand || ""} onChange={(event) => set("brand", event.target.value)} required><option value="">Select brand</option>{brands.filter((brand) => typeof brand === "string" || brand.active !== false).map((brand) => <option key={typeof brand === "string" ? brand : brand.id} value={typeof brand === "string" ? brand : brand.name}>{typeof brand === "string" ? brand : brand.name}</option>)}</select></Field><Button icon={Plus} variant="outline" onClick={() => setCatalogFormKind("brands")}>Add Brand</Button></div>
+      <div className="admin-catalog-field"><Field label="Category"><select value={form.category || ""} onChange={(event) => set("category", event.target.value)} required><option value="">Select category</option>{categories.filter((category) => category.active !== false).map((category) => <option key={category.id || category.slug} value={category.name}>{category.name}</option>)}</select></Field><Button icon={Plus} variant="outline" onClick={() => setCatalogFormKind("categories")}>Add Category</Button></div>
       <Field label="Gender"><select value={form.gender || "Unisex"} onChange={(event) => set("gender", event.target.value)}><option>Men</option><option>Women</option><option>Unisex</option></select></Field>
       <Field label="Condition"><select value={normalizeCondition(form.condition)} onChange={(event) => set("condition", event.target.value)} required>{PRODUCT_CONDITIONS.map((condition) => <option key={condition}>{condition}</option>)}</select></Field>
       <Field className="admin-full-field" label="Description"><textarea value={form.description || ""} onChange={(event) => set("description", event.target.value)} rows="4" required /></Field>
@@ -280,8 +308,7 @@ function ProductForm() {
       <Field label="Original price (Rs.)" type="number" min="0" value={form.originalPrice ?? ""} onChange={(event) => set("originalPrice", event.target.value)} />
       <Field label="Discount (%)" type="number" value={form.originalPrice > form.price && form.price ? Math.round((1 - Number(form.price) / Number(form.originalPrice)) * 100) : 0} readOnly hint="Calculated from the original price and current price." />
     </div></div></section>
-    <section className="admin-form-card"><div className="admin-form-section"><div className="admin-form-section-title"><h2>Available sizes</h2><p>Select every shoe size available for this pair.</p></div><fieldset className="admin-size-picker"><legend className="sr-only">Available shoe sizes</legend>{availableShoeSizes.map((size) => <button type="button" key={size} className={(form.sizes || []).includes(size) ? "admin-size-option selected" : "admin-size-option"} aria-pressed={(form.sizes || []).includes(size)} onClick={() => toggleSize(size)}>{size}</button>)}</fieldset></div></section>
-    <section className="admin-form-card"><div className="admin-form-section"><div className="admin-form-section-title"><h2>Inventory</h2><p>Track the quantity available to sell.</p></div><div className="admin-form-fields"><Field label="Stock quantity" type="number" min="0" step="1" value={form.stock ?? 0} onChange={(event) => set("stock", event.target.value)} required /></div></div></section>
+    <section className="admin-form-card"><div className="admin-form-section"><div className="admin-form-section-title"><h2>Available sizes</h2><p>Set the quantity available for each shoe size.</p></div><div className="admin-size-quantities"><div className="admin-size-quantity-heading"><span>Size</span><span>Quantity</span><span className="sr-only">Actions</span></div>{(form.sizes || []).map((row, index) => { const rowError = showSizeErrors ? sizeError(index) : ""; const usedSizes = form.sizes.filter((_, rowIndex) => rowIndex !== index).map((other) => Number(other.size)); return <div className="admin-size-quantity-row" key={index}><label className="admin-field"><span className="sr-only">Size {index + 1}</span><select aria-label={`Size ${index + 1}`} aria-invalid={Boolean(rowError && (!row.size || !availableShoeSizes.includes(Number(row.size)) || rowError.includes("once")))} value={row.size || ""} onChange={(event) => updateSize(index, "size", event.target.value)}><option value="">Select size</option>{availableShoeSizes.filter((size) => !usedSizes.includes(size)).map((size) => <option key={size} value={size}>{size}</option>)}</select></label><label className="admin-field"><span className="sr-only">Quantity for size {row.size || index + 1}</span><input aria-label={`Quantity for size ${row.size || index + 1}`} aria-invalid={Boolean(rowError && rowError.includes("quantity"))} type="number" min="1" step="1" value={row.quantity ?? ""} onChange={(event) => updateSize(index, "quantity", event.target.value)} placeholder="0" /></label><button className="admin-icon-button danger-hover" type="button" aria-label={`Remove size row ${index + 1}`} onClick={() => { set("sizes", form.sizes.filter((_, rowIndex) => rowIndex !== index)); setError(""); }}><Trash2 size={15} /></button>{rowError && <small className="admin-size-row-error">{rowError}</small>}</div>; })}<div className="admin-size-quantity-actions"><Button icon={Plus} variant="outline" onClick={() => { set("sizes", [...(form.sizes || []), { size: "", quantity: "" }]); setError(""); }}>Add Size</Button><strong>Total Stock <span>{totalStock}</span></strong></div></div></div></section>
     <section className="admin-form-card"><div className="admin-form-section"><div className="admin-form-section-title"><h2>Product images</h2><p>Upload 1–4 JPG, PNG, or WEBP images. Maximum 5MB each.</p></div><div className="admin-image-manager">
       <button type="button" className="admin-image-dropzone" onClick={() => fileInput.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }}><span className="admin-image-upload-icon"><Package size={21} /></span><strong>Upload product images</strong><span>Drag and drop images here, or choose files</span><small>{4 - imageEntries.length} image slot{4 - imageEntries.length === 1 ? "" : "s"} remaining</small><span className="admin-button admin-button-outline admin-button-small">Choose images</span></button>
       <input ref={fileInput} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple onChange={(event) => { addFiles(event.target.files); event.target.value = ""; }} />
@@ -295,10 +322,10 @@ function ProductForm() {
     </div></div></section>
     {error && <p className="admin-form-error" role="alert">{error}</p>}
     <div className="admin-product-form-footer"><Button variant="subtle" onClick={() => navigate("/admin/products/list")}>Cancel</Button><Button icon={Save} type="submit">{item ? "Save changes" : "Create product"}</Button></div>
-  </form></>;
+  </form>{catalogFormKind && <CatalogForm kind={catalogFormKind} embedded onCancel={() => setCatalogFormKind(null)} onCreated={(record) => { set(catalogFormKind === "brands" ? "brand" : "category", record.name); setCatalogFormKind(null); }} />}</>;
 }
 
-function CatalogForm({ kind }) {
+function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { categories, brands, updateCategories, updateBrands, notify } = useAdmin();
@@ -323,11 +350,14 @@ function CatalogForm({ kind }) {
     try {
       setters[kind](item ? records.map((record) => record.id === item.id ? data : record) : [data, ...records]);
       notify(`${singular[0].toUpperCase()}${singular.slice(1)} ${item ? "updated" : "created"} successfully.`);
-      navigate(`/admin/${kind}/list`);
+      if (onCreated) onCreated(data);
+      else navigate(`/admin/${kind}/list`);
     } catch (saveError) { setError(saveError.message); }
   }
   if (id && !item) return <><PageHeader eyebrow={plural.toUpperCase()} title="Record not found" /><div className="admin-card admin-not-found"><p>This record may have been removed.</p><Link to={`/admin/${kind}/list`} className="admin-text-link">Back to {plural.toLowerCase()} <ArrowRight size={14} /></Link></div></>;
-  return <><PageHeader eyebrow={`${plural.toUpperCase()} / ${item ? "EDIT" : "NEW"}`} title={`${item ? "Edit" : "Add"} ${singular}`} description={`Enter the details for this ${singular}.`} actions={<Button variant="subtle" onClick={() => navigate(`/admin/${kind}/list`)}><ChevronLeft size={16} /> Back to {plural.toLowerCase()}</Button>} /><form className="admin-form-card" onSubmit={submit}><div className="admin-form-section"><div className="admin-form-section-title"><h2>Details</h2><p>Core information shown across your store.</p></div><div className="admin-form-fields"><Field label={`${singular[0].toUpperCase()}${singular.slice(1)} name`} value={form.name || ""} onChange={(event) => set("name", event.target.value)} required placeholder={`Enter ${singular} name`} /><Field label="URL slug" value={form.slug || ""} onChange={(event) => set("slug", event.target.value)} placeholder="generated-from-name" />{kind === "categories" && <><Field label="Description" className="admin-full-field"><textarea value={form.description || ""} onChange={(event) => set("description", event.target.value)} rows="4" placeholder="Describe this collection…" /></Field><Field label="Image URL" className="admin-full-field" value={form.image || ""} onChange={(event) => set("image", event.target.value)} placeholder="https://…" /></>}{kind === "brands" && <Field label="Description" className="admin-full-field"><textarea value={form.description || ""} onChange={(event) => set("description", event.target.value)} rows="4" placeholder="A short introduction to this brand…" /></Field>}<Field label="Status"><select value={form.status || "Active"} onChange={(event) => set("status", event.target.value)}><option>Active</option><option>Draft</option><option>Archived</option></select></Field></div></div>{error && <p className="admin-form-error" role="alert">{error}</p>}<div className="admin-form-footer"><span>Changes are saved to this browser’s local store data.</span><div><Button variant="subtle" onClick={() => navigate(`/admin/${kind}/list`)}>Cancel</Button><Button icon={Save} type="submit">{item ? "Save changes" : `Create ${singular}`}</Button></div></div></form></>;
+  const fields = <div className="admin-form-fields"><Field label={`${singular[0].toUpperCase()}${singular.slice(1)} name`} value={form.name || ""} onChange={(event) => set("name", event.target.value)} required placeholder={`Enter ${singular} name`} /><Field label="URL slug" value={form.slug || ""} onChange={(event) => set("slug", event.target.value)} placeholder="generated-from-name" />{kind === "categories" && <><Field label="Description" className="admin-full-field"><textarea value={form.description || ""} onChange={(event) => set("description", event.target.value)} rows="4" placeholder="Describe this collection…" /></Field><Field label="Image URL" className="admin-full-field" value={form.image || ""} onChange={(event) => set("image", event.target.value)} placeholder="https://…" /></>}{kind === "brands" && <Field label="Description" className="admin-full-field"><textarea value={form.description || ""} onChange={(event) => set("description", event.target.value)} rows="4" placeholder="A short introduction to this brand…" /></Field>}<Field label="Status"><select value={form.status || "Active"} onChange={(event) => set("status", event.target.value)}><option>Active</option><option>Draft</option><option>Archived</option></select></Field></div>;
+  if (embedded) return <Modal title={`Add ${singular}`} description={`Enter the details for this ${singular}.`} onClose={onCancel} size="wide"><form className="admin-inline-catalog-form" onSubmit={submit}>{fields}{error && <p className="admin-form-error" role="alert">{error}</p>}<div className="admin-modal-footer"><Button variant="subtle" onClick={onCancel}>Cancel</Button><Button icon={Save} type="submit">Create {singular}</Button></div></form></Modal>;
+  return <><PageHeader eyebrow={`${plural.toUpperCase()} / ${item ? "EDIT" : "NEW"}`} title={`${item ? "Edit" : "Add"} ${singular}`} description={`Enter the details for this ${singular}.`} actions={<Button variant="subtle" onClick={() => navigate(`/admin/${kind}/list`)}><ChevronLeft size={16} /> Back to {plural.toLowerCase()}</Button>} /><form className="admin-form-card" onSubmit={submit}><div className="admin-form-section"><div className="admin-form-section-title"><h2>Details</h2><p>Core information shown across your store.</p></div>{fields}</div>{error && <p className="admin-form-error" role="alert">{error}</p>}<div className="admin-form-footer"><span>Changes are saved to this browser’s local store data.</span><div><Button variant="subtle" onClick={() => navigate(`/admin/${kind}/list`)}>Cancel</Button><Button icon={Save} type="submit">{item ? "Save changes" : `Create ${singular}`}</Button></div></div></form></>;
 }
 
 export function ProductListPage() { return <CatalogList kind="products" />; }
