@@ -7,7 +7,7 @@ import { ForgotPasswordPage, ResetPasswordPage, VerifyCodePage } from "./AdminAu
 import {
   BrandFormPage, BrandListPage, CategoryFormPage, CategoryListPage, CustomerDetailPage,
   CustomersPage, DashboardPage, DiscountsPage, InventoryPage, OrderDetailPage, OrdersPage,
-  ProductFormPage, ProductListPage, SettingsPage,
+  ProductDetailPage, ProductFormPage, ProductListPage, SettingsPage,
 } from "./AdminPages";
 
 /**
@@ -27,6 +27,7 @@ export function AdminRoutes() {
       <Route path="products/list" element={<ProductListPage />} />
       <Route path="products/add" element={<ProductFormPage />} />
       <Route path="products/edit/:id" element={<ProductFormPage />} />
+      <Route path="products/:id" element={<ProductDetailPage />} />
       <Route path="categories" element={<Navigate to="/admin/categories/list" replace />} />
       <Route path="categories/list" element={<CategoryListPage />} />
       <Route path="categories/add" element={<CategoryFormPage />} />
