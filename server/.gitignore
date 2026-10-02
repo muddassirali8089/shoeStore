@@ -4,6 +4,8 @@ node_modules/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 .env.local
 .env.development
 .env.production
@@ -28,6 +30,7 @@ coverage/
 # Build / distribution
 dist/
 build/
+uploads/
 
 # Cache
 .cache/
