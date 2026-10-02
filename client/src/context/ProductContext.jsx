@@ -51,7 +51,7 @@ function normalizeProduct(product) {
   return {
     ...catalogProduct,
     condition: normalizeCondition(product.condition),
-    sizes: Array.isArray(product.sizes) ? product.sizes.map((entry) => Number(typeof entry === 'object' ? entry.size : entry)).filter((size) => sizes.includes(size)) : [],
+    sizes: Array.isArray(product.sizes) ? product.sizes.map((entry) => Number(typeof entry === 'object' ? entry.size : entry)).filter((size) => Number.isFinite(size) && size > 0) : [],
     images: Array.isArray(product.images) ? product.images.filter(Boolean).slice(0, 4) : [],
     thumbnail: product.thumbnail || product.images?.[0] || '',
   }

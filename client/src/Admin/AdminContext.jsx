@@ -158,8 +158,8 @@ export function AdminProvider({ children }) {
       const sizes = Array.isArray(product.sizes) ? product.sizes.map((entry) => typeof entry === "object" && entry !== null
         ? { ...entry, size: Number(entry.size), quantity: Number(entry.quantity) }
         : Number(entry)).filter((entry) => typeof entry === "object"
-        ? Number.isInteger(entry.size) && entry.size >= 36 && entry.size <= 46 && Number.isInteger(entry.quantity) && entry.quantity > 0
-        : entry >= 36 && entry <= 46) : [];
+        ? Number.isFinite(entry.size) && entry.size > 0 && Number.isInteger(entry.quantity) && entry.quantity > 0
+        : Number.isFinite(entry) && entry > 0) : [];
       const stock = sizes.length && sizes.every((entry) => typeof entry === "object")
         ? sizes.reduce((total, entry) => total + entry.quantity, 0)
         : Number(product.stock) || 0;
