@@ -126,9 +126,9 @@
 .admin-product-cell small span, .admin-name-cell small span { margin: 0 2px; }
 .admin-status { align-items: center; border-radius: 20px; display: inline-flex; font-size: 9px; font-weight: 600; line-height: 1; padding: 6px 8px; }
 .status-active, .status-delivered, .status-in-stock, .status-paid { background: #eaf4ec; color: #477655; }
-.status-processing, .status-confirmed, .status-scheduled, .status-low-stock, .status-out-for-delivery { background: #fbf3df; color: #9a7629; }
+.status-pending, .status-processing, .status-confirmed, .status-scheduled, .status-low-stock, .status-out-for-delivery { background: #fbf3df; color: #9a7629; }
 .status-shipped { background: #eaf1fb; color: #52749d; }
-.status-draft, .status-archived, .status-disabled, .status-cancelled, .status-out-of-stock, .status-refunded { background: #f1f2f1; color: #737c76; }
+.status-draft, .status-archived, .status-disabled, .status-cancelled, .status-returned, .status-out-of-stock, .status-refunded { background: #f1f2f1; color: #737c76; }
 .admin-money { color: #354139; font-size: 10px; font-weight: 650; }
 .admin-stock-low { color: #ae6b37; font-weight: 600; }
 .admin-stock-good { color: #607567; font-weight: 500; }

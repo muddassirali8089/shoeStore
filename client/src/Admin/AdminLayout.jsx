@@ -63,7 +63,7 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
-  const pending = orders.filter((order) => ["Processing", "Confirmed"].includes(order.status)).length;
+  const pending = orders.filter((order) => ["pending", "confirmed"].includes(order.status)).length;
   function signOut() {
     if (!logoutAdmin()) {
       notify("Your browser could not clear the admin session. Check your storage settings and try again.", "error");

@@ -71,7 +71,7 @@ const people = [
   ["Henry Scott", "henry.scott@example.com", "+1 709 555 0118", "St. John's", "Newfoundland"],
   ["Layla Adams", "layla.adams@example.com", "+1 416 555 0189", "Toronto", "Ontario"],
 ];
-const sampleStatuses = ["Processing", "Shipped", "Delivered", "Confirmed", "Processing", "Out for Delivery", "Delivered", "Shipped", "Processing", "Delivered", "Confirmed", "Shipped", "Delivered", "Processing", "Cancelled"];
+const sampleStatuses = ["pending", "shipped", "delivered", "confirmed", "pending", "shipped", "delivered", "shipped", "pending", "delivered", "confirmed", "shipped", "delivered", "pending", "cancelled"];
 const orderSeed = people.map(([fullName, email, phone, city, province], index) => {
   const product = productSeed[(index * 3 + 1) % productSeed.length];
   const second = index % 4 === 0 ? productSeed[(index * 5 + 4) % productSeed.length] : null;
@@ -85,7 +85,9 @@ const orderSeed = people.map(([fullName, email, phone, city, province], index) =
   const [firstName, ...last] = fullName.split(" ");
   return {
     id: `MG-${String(26090000 + index * 137).slice(0, 8)}`, date: new Date(2026, 8, 28 - index).toISOString(),
-    status: sampleStatuses[index], total: subtotal + shipping, subtotal, shipping,
+    status: sampleStatuses[index], paymentMethod: "cash_on_delivery",
+    paymentStatus: index % 3 === 0 ? "received" : "pending",
+    total: subtotal + shipping, subtotal, shipping,
     items, customer: { firstName, lastName: last.join(" "), email, phone, address: `${120 + index} ${["King", "Queen", "Main", "Bloor", "Granville"][index % 5]} Street`, city, province, postalCode: `M${index + 1}A ${index + 2}B${index + 3}` },
     payment: index % 3 === 0 ? "Visa ending in 4242" : index % 3 === 1 ? "Mastercard ending in 0088" : "Apple Pay",
   };
@@ -122,11 +124,22 @@ const mergeSeedRows = (value, seed, getKey = (item) => item.id) => {
 };
 const normalizeOrder = (order, index) => {
   const customer = order.customer || {};
+  const status = String(order.orderStatus || order.status || "pending").toLowerCase();
   return {
     ...order,
     id: order.id || `MG-IMPORT-${index + 1}`,
     date: order.createdAt || order.date || new Date().toISOString(),
-    status: order.status || "Pending",
+    status: ({
+      pending: "pending",
+      processing: "pending",
+      confirmed: "confirmed",
+      shipped: "shipped",
+      "out for delivery": "shipped",
+      delivered: "delivered",
+      cancelled: "cancelled",
+      canceled: "cancelled",
+      returned: "returned",
+    })[status] || "pending",
     items: asList(order.items, []).map((item) => ({
       ...item,
       productId: item.productId || item.id || item.productSnapshot?.id || "",
@@ -146,8 +159,9 @@ const normalizeOrder = (order, index) => {
     },
     subtotal: Number(order.subtotal) || undefined,
     total: Number(order.total) || 0,
-    payment: order.payment || order.paymentMethod || "Not specified",
-    paymentStatus: order.paymentStatus || "",
+    paymentMethod: order.paymentMethod || "cash_on_delivery",
+    paymentStatus: order.paymentStatus === "received" ? "received" : "pending",
+    payment: order.payment || order.paymentMethod || "cash_on_delivery",
     notes: customer.notes || order.notes || "",
   };
 };
