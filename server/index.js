@@ -58,7 +58,7 @@ export default app;
 export async function start() {
   try {
     await connectDB();
-    await seedAdmin();
+    // await seedAdmin();
     const port = Number(process.env.PORT) || 5000;
     app.listen(port, () => console.log(`ShoeStore API listening on http://localhost:${port}.`));
   } catch (error) {

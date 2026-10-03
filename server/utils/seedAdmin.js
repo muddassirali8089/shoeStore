@@ -1,6 +1,7 @@
 import Admin from "../models/Admin.js";
 
 export async function seedAdmin() {
+  console.log("Seeding initial admin account...");
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !password) {
