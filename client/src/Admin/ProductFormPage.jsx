@@ -68,7 +68,16 @@ function ProductForm() {
 
   async function processFile(file) {
     const validTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!validTypes.includes(file.type)) {
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    const inferredType =
+      extension === "jpg" || extension === "jpeg"
+        ? "image/jpeg"
+        : extension === "png"
+          ? "image/png"
+          : extension === "webp"
+            ? "image/webp"
+            : "";
+    if (!validTypes.includes(file.type) && !inferredType) {
       notify("Choose a JPG, JPEG, PNG, or WEBP image.", "error");
       return null;
     }
