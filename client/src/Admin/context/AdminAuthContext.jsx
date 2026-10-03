@@ -1,199 +1,113 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { authService } from '../../services/authService'
 
-const AdminAuthContext = createContext(null);
-
-export const ADMIN_EMAIL = "admin@example.com";
-export const DEFAULT_ADMIN_PASSWORD = "admin123";
-const PASSWORD_KEY = "mg-admin-password";
-const CHALLENGE_KEY = "mg-admin-password-recovery";
-const CODE_LIFETIME = 5 * 60 * 1000;
-
-function readJson(storage, key, fallback) {
-  try {
-    const value = storage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function getStorage(type) {
-  try {
-    return typeof window === "undefined" ? null : window[type];
-  } catch {
-    return null;
-  }
-}
-
-function writeJson(storage, key, value) {
-  try {
-    storage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function getChallenge() {
-  const storage = getStorage("sessionStorage");
-  if (!storage) return null;
-  const challenge = readJson(storage, CHALLENGE_KEY, null);
-  if (!challenge || typeof challenge !== "object") return null;
-  if (challenge.email !== ADMIN_EMAIL || !/^\d{6}$/.test(challenge.code)) return null;
-  if (!Number.isFinite(challenge.expiresAt) || typeof challenge.verified !== "boolean") return null;
-  return challenge;
-}
-
-function generateCode() {
-  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
-    const values = new Uint32Array(1);
-    window.crypto.getRandomValues(values);
-    return String(values[0] % 1000000).padStart(6, "0");
-  }
-  return String(Math.floor(Math.random() * 1000000)).padStart(6, "0");
-}
+const AdminAuthContext = createContext(null)
+const TOKEN_KEY = 'mg-admin-token'
 
 export function AdminAuthProvider({ children }) {
-  const [password, setPassword] = useState(() => {
-    if (typeof window === "undefined") return DEFAULT_ADMIN_PASSWORD;
-    try {
-      return window.localStorage.getItem(PASSWORD_KEY) || DEFAULT_ADMIN_PASSWORD;
-    } catch {
-      return DEFAULT_ADMIN_PASSWORD;
-    }
-  });
-  const [challenge, setChallenge] = useState(getChallenge);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try { return window.localStorage.getItem("mg-admin") === "true"; } catch { return false; }
-  });
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => Boolean(window.localStorage.getItem(TOKEN_KEY)))
+  const [admin, setAdmin] = useState(null)
+  const [challenge, setChallenge] = useState(() => {
+    try { return JSON.parse(window.sessionStorage.getItem('mg-admin-password-recovery')) } catch { return null }
+  })
 
-  const beginRecovery = useCallback((email) => {
-    if (String(email).trim().toLowerCase() !== ADMIN_EMAIL) return { ok: false };
-    const next = { email: ADMIN_EMAIL, code: generateCode(), expiresAt: Date.now() + CODE_LIFETIME, verified: false };
-    const storage = getStorage("sessionStorage");
-    if (!storage || !writeJson(storage, CHALLENGE_KEY, next)) {
-      return { ok: false, storageError: true };
+  useEffect(() => {
+    let active = true
+    const unauthorized = () => {
+      setAdmin(null)
+      setIsAdminAuthenticated(false)
+      window.dispatchEvent(new Event('mg-admin-auth-changed'))
     }
-    setChallenge(next);
-    return { ok: true, demoCode: next.code };
-  }, []);
-  const resendCode = useCallback(() => {
-    if (!challenge || challenge.email !== ADMIN_EMAIL) return { ok: false };
-    const next = { email: ADMIN_EMAIL, code: generateCode(), expiresAt: Date.now() + CODE_LIFETIME, verified: false };
-    const storage = getStorage("sessionStorage");
-    if (!storage || !writeJson(storage, CHALLENGE_KEY, next)) {
-      return { ok: false, storageError: true };
+    window.addEventListener('mg-admin-unauthorized', unauthorized)
+
+    async function restoreSession() {
+      try {
+        const current = await authService.me()
+        if (active) setAdmin(current)
+      } catch {
+        if (active) {
+          window.localStorage.removeItem(TOKEN_KEY)
+          setIsAdminAuthenticated(false)
+        }
+      }
     }
-    setChallenge(next);
-    return { ok: true, demoCode: next.code };
-  }, [challenge]);
-  const verifyCode = useCallback((code) => {
-    const current = getChallenge();
-    if (!current || current.expiresAt <= Date.now()) return { ok: false, expired: true };
-    if (String(code) !== current.code) return { ok: false, expired: false };
-    const verified = { ...current, verified: true };
-    const storage = getStorage("sessionStorage");
-    if (!storage || !writeJson(storage, CHALLENGE_KEY, verified)) {
-      return { ok: false, storageError: true };
+    if (window.localStorage.getItem(TOKEN_KEY)) {
+      restoreSession()
     }
-    setChallenge(verified);
-    return { ok: true };
-  }, []);
+
+    return () => {
+      active = false
+      window.removeEventListener('mg-admin-unauthorized', unauthorized)
+    }
+  }, [])
+
   const clearRecovery = useCallback(() => {
-    const storage = getStorage("sessionStorage");
-    if (!storage) return false;
-    try {
-      storage.removeItem(CHALLENGE_KEY);
-    } catch {
-      return false;
+    window.sessionStorage.removeItem('mg-admin-password-recovery')
+    setChallenge(null)
+  }, [])
+  const beginRecovery = useCallback(async (email) => {
+    await authService.forgotPassword(String(email).trim().toLowerCase())
+    const next = { email: String(email).trim().toLowerCase(), expiresAt: Date.now() + 10 * 60 * 1000, verified: false, resetToken: '' }
+    window.sessionStorage.setItem('mg-admin-password-recovery', JSON.stringify(next))
+    setChallenge(next)
+    return { ok: true }
+  }, [])
+  const resendCode = useCallback(async () => {
+    if (!challenge?.email) return { ok: false }
+    await authService.forgotPassword(challenge.email)
+    const next = { email: challenge.email, expiresAt: Date.now() + 10 * 60 * 1000, verified: false, resetToken: '' }
+    window.sessionStorage.setItem('mg-admin-password-recovery', JSON.stringify(next))
+    setChallenge(next)
+    return { ok: true }
+  }, [challenge])
+  const verifyCode = useCallback(async (code) => {
+    if (!challenge?.email) return { ok: false, expired: true }
+    const { resetToken } = await authService.verifyCode(challenge.email, code)
+    const next = { ...challenge, verified: true, resetToken }
+    window.sessionStorage.setItem('mg-admin-password-recovery', JSON.stringify(next))
+    setChallenge(next)
+    return { ok: true }
+  }, [challenge])
+  const resetPassword = useCallback(async (nextPassword) => {
+    if (!challenge?.verified || !challenge.resetToken) return { ok: false }
+    await authService.resetPassword(challenge.email, challenge.resetToken, nextPassword)
+    clearRecovery()
+    return { ok: true }
+  }, [challenge, clearRecovery])
+  const loginAdmin = useCallback(async (email, password) => {
+    const result = await authService.login({ email: String(email).trim().toLowerCase(), password })
+    window.localStorage.setItem(TOKEN_KEY, result.token)
+    setAdmin(result.admin)
+    setIsAdminAuthenticated(true)
+    window.dispatchEvent(new Event('mg-admin-auth-changed'))
+    return true
+  }, [])
+  const logoutAdmin = useCallback(async () => {
+    try { await authService.logout() } finally {
+      window.localStorage.removeItem(TOKEN_KEY)
+      setAdmin(null)
+      setIsAdminAuthenticated(false)
+      window.dispatchEvent(new Event('mg-admin-auth-changed'))
     }
-    setChallenge(null);
-    return true;
-  }, []);
-
+    return true
+  }, [])
   const value = useMemo(() => ({
-    email: ADMIN_EMAIL,
-    password,
-    challenge,
-    isAdminAuthenticated,
-    beginRecovery,
-    resendCode,
-    verifyCode,
-    resetPassword(nextPassword) {
-      const current = getChallenge();
-      if (!current?.verified || current.expiresAt <= Date.now()) {
-        return { ok: false };
-      }
-      if (nextPassword.length < 8) return { ok: false, validationError: true };
-      const challengeStorage = getStorage("sessionStorage");
-      const localStorage = getStorage("localStorage");
-      if (!challengeStorage || !localStorage) return { ok: false, storageError: true };
-      try {
-        challengeStorage.removeItem(CHALLENGE_KEY);
-      } catch {
-        return { ok: false, storageError: true };
-      }
-      setChallenge(null);
-      try {
-        // Frontend demo only — never store real passwords this way in production.
-        localStorage.setItem("mg-admin", "false");
-        setIsAdminAuthenticated(false);
-        localStorage.setItem(PASSWORD_KEY, nextPassword);
-      } catch {
-        return { ok: false, storageError: true };
-      }
-      setPassword(nextPassword);
-      return { ok: true };
-    },
-    clearRecovery,
-    authenticate(email, candidatePassword) {
-      return String(email).trim().toLowerCase() === ADMIN_EMAIL && candidatePassword === password;
-    },
-    loginAdmin(email, candidatePassword) {
-      if (String(email).trim().toLowerCase() !== ADMIN_EMAIL || candidatePassword !== password) return false;
-      try {
-        window.localStorage.setItem("mg-admin", "true");
-      } catch {
-        return null;
-      }
-      setIsAdminAuthenticated(true);
-      return true;
-    },
-    logoutAdmin() {
-      try {
-        window.localStorage.setItem("mg-admin", "false");
-      } catch {
-        return false;
-      }
-      setIsAdminAuthenticated(false);
-      return true;
-    },
-    forgotPassword(email) {
-      return beginRecovery(email);
-    },
-    sendVerificationCode(email) {
-      return beginRecovery(email);
-    },
-    verifyVerificationCode(code) {
-      return verifyCode(code);
-    },
-    isVerificationCodeValid() {
-      const current = getChallenge();
-      return Boolean(current && current.expiresAt > Date.now());
-    },
-    isPasswordResetAllowed() {
-      const current = getChallenge();
-      return Boolean(current?.verified && current.expiresAt > Date.now());
-    },
-  }), [password, challenge, isAdminAuthenticated, beginRecovery, resendCode, verifyCode, clearRecovery]);
-
-  return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
+    admin, email: admin?.email || challenge?.email || '',
+    isAdminAuthenticated, challenge, beginRecovery, resendCode, verifyCode,
+    resetPassword, clearRecovery, loginAdmin, logoutAdmin,
+    authenticate: loginAdmin,
+    forgotPassword: beginRecovery,
+    sendVerificationCode: beginRecovery,
+    verifyVerificationCode: verifyCode,
+    isVerificationCodeValid: () => Boolean(challenge && challenge.expiresAt > Date.now()),
+    isPasswordResetAllowed: () => Boolean(challenge?.verified && challenge.expiresAt > Date.now()),
+  }), [admin, challenge, isAdminAuthenticated, beginRecovery, resendCode, verifyCode, resetPassword, clearRecovery, loginAdmin, logoutAdmin])
+  return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>
 }
 
 export function useAdminAuth() {
-  const context = useContext(AdminAuthContext);
-  if (!context) throw new Error("useAdminAuth must be used inside AdminAuthProvider.");
-  return context;
+  const context = useContext(AdminAuthContext)
+  if (!context) throw new Error('useAdminAuth must be used inside AdminAuthProvider.')
+  return context
 }

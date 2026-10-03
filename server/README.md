@@ -197,6 +197,7 @@ Example form-data fields:
 - `images`: upload up to 4 image files
 
 Note: `images` is the file field name for uploads. `brand` and `category` can be accepted as an ObjectId or by name.
+Size quantities must be whole numbers greater than or equal to zero; `0` represents an out-of-stock size and is used by admin inventory updates.
 
 Valid `condition` values:
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from "lucide-react";
-import { ADMIN_EMAIL, useAdminAuth } from "./context/AdminAuthContext";
+import { useAdminAuth } from "./context/AdminAuthContext";
 
 const styles = `
 .admin-recovery { align-items: center; background: #f5f7f4; color: #18221e; display: flex; font-family: "DM Sans", "Segoe UI", sans-serif; justify-content: center; min-height: 100vh; padding: 28px 18px; }
@@ -50,24 +50,22 @@ function Message({ children, type = "error" }) {
 export function ForgotPasswordPage() {
   const { beginRecovery, clearRecovery } = useAdminAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState(ADMIN_EMAIL);
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     setError("");
-    const result = beginRecovery(email);
-    if (!result.ok) {
+    try {
+      await beginRecovery(email);
+      navigate("/admin/verify-code", { state: { notice: "If an admin account exists for that email, a verification code has been sent." } });
+    } catch (recoveryError) {
       clearRecovery();
-      setError(result.storageError
-        ? "Your browser could not save the recovery request. Check your storage settings and try again."
-        : `Use the admin email address ${ADMIN_EMAIL} to recover this demo account.`);
-      return;
+      setError(recoveryError.message);
     }
-    navigate("/admin/verify-code", { state: { notice: "Verification code sent successfully." } });
   }
 
-  return <RecoveryFrame><div className="admin-recovery-icon"><Mail size={20} /></div><h1>Forgot Password?</h1><p className="admin-recovery-description">Enter your admin email address and we'll send you a 6-digit verification code. For this frontend demo, the code is generated locally and is not emailed.</p><Message>{error}</Message><form className="admin-recovery-form" onSubmit={submit}><label className="admin-recovery-field">Email<input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><button className="admin-recovery-button" type="submit">Send Verification Code</button></form><div className="admin-recovery-footnote">This recovery flow is only for the admin demo account. The customer storefront has no password-recovery flow.</div><Link className="admin-recovery-back" to="/admin/login"><ArrowLeft size={14} /> Back to sign in</Link></RecoveryFrame>;
+  return <RecoveryFrame><div className="admin-recovery-icon"><Mail size={20} /></div><h1>Forgot Password?</h1><p className="admin-recovery-description">Enter your admin email address and we’ll send a 6-digit verification code if the account is eligible.</p><Message>{error}</Message><form className="admin-recovery-form" onSubmit={submit}><label className="admin-recovery-field">Email<input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><button className="admin-recovery-button" type="submit">Send Verification Code</button></form><div className="admin-recovery-footnote">A verified code is required to reset the administrator password.</div><Link className="admin-recovery-back" to="/admin/login"><ArrowLeft size={14} /> Back to sign in</Link></RecoveryFrame>;
 }
 
 function useRemainingTime(expiresAt) {
@@ -124,27 +122,29 @@ export function VerifyCodePage() {
     }
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
-    const result = verifyCode(code);
-    if (!result.ok) {
-      setError(result.storageError
-        ? "The verification state could not be saved. Check your browser storage and try again."
-        : result.expired ? "This code has expired. Request a new demo code to continue." : "That code doesn’t match. Check the demo code and try again.");
-      return;
+    try {
+      await verifyCode(code);
+      navigate("/admin/reset-password");
+    } catch (verifyError) {
+      setError(verifyError.message);
     }
-    navigate("/admin/reset-password");
   }
 
-  function resend() {
-    const result = resendCode();
-    setDigits(["", "", "", "", "", ""]);
-    setError(result.ok ? "" : "A new code could not be saved. Check your browser storage and try again.");
-    setStatus(result.ok ? "New verification code generated." : "");
-    inputs.current[0]?.focus();
+  async function resend() {
+    try {
+      await resendCode();
+      setDigits(["", "", "", "", "", ""]);
+      setError("");
+      setStatus("If an admin account exists, a new code has been sent.");
+      inputs.current[0]?.focus();
+    } catch (resendError) {
+      setError(resendError.message);
+    }
   }
 
-  if (!challenge) return <RecoveryFrame><div className="admin-recovery-icon"><KeyRound size={20} /></div><h1>No active code</h1><p className="admin-recovery-description">Start a new recovery request to receive a fresh demo verification code.</p><Link className="admin-recovery-button" to="/admin/forgot-password">Request a code</Link></RecoveryFrame>;
+  if (!challenge) return <RecoveryFrame><div className="admin-recovery-icon"><KeyRound size={20} /></div><h1>No active code</h1><p className="admin-recovery-description">Start a new recovery request to receive a verification code.</p><Link className="admin-recovery-button" to="/admin/forgot-password">Request a code</Link></RecoveryFrame>;
 
   return (
     <RecoveryFrame>
@@ -181,7 +181,6 @@ export function VerifyCodePage() {
         <button className="admin-recovery-button" type="submit" disabled={code.length !== 6 || remaining === null || !isVerificationCodeValid()}>Verify Code</button>
       </form>
       <button className="admin-recovery-resend" type="button" onClick={resend}>Resend Code</button>
-      <div className="admin-recovery-demo">Development Demo Code: <strong>{challenge.code}</strong></div>
       <Link className="admin-recovery-back" to="/admin/forgot-password"><ArrowLeft size={14} /> Use a different email</Link>
     </RecoveryFrame>
   );
@@ -204,23 +203,21 @@ export function ResetPasswordPage() {
   const remainingMinutes = remaining === null ? null : Math.ceil(remaining / 60);
   const verified = isPasswordResetAllowed() && remaining > 0;
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     setError("");
     if (password.length < 8) { setError("Your password must be at least 8 characters long."); return; }
     if (!confirmPassword) { setError("Please confirm your new password."); return; }
     if (password !== confirmPassword) { setError("The passwords do not match."); return; }
-    const result = resetPassword(password);
-    if (!result.ok) {
-      setError(result.storageError
-        ? "Your new password could not be saved. Check your browser storage and try again."
-        : "Your verification has expired. Request and verify a new code first.");
-      return;
+    try {
+      await resetPassword(password);
+      navigate("/admin/login", {
+        replace: true,
+        state: { notice: "Password updated successfully. Please log in with your new password." },
+      });
+    } catch (resetError) {
+      setError(resetError.message);
     }
-    navigate("/admin/login", {
-      replace: true,
-      state: { notice: "Password updated successfully. Please log in with your new password." },
-    });
   }
 
   if (!verified) return <RecoveryFrame><div className="admin-recovery-icon"><KeyRound size={20} /></div><h1>Verify your code first</h1><p className="admin-recovery-description">A valid, verified recovery code is required before you can reset the admin password.</p><Link className="admin-recovery-button" to={challenge ? "/admin/verify-code" : "/admin/forgot-password"}>{challenge ? "Continue verification" : "Start recovery"}</Link></RecoveryFrame>;

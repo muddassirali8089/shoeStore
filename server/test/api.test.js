@@ -87,6 +87,9 @@ test("product schema derives stock from unique arbitrary shoe sizes", async () =
   product.condition = "Almost new";
   await assert.rejects(product.validate(), /condition/);
   product.condition = "Excellent 9/10";
+  product.sizes = [{ size: 42, quantity: 0 }];
+  assert.equal(product.totalStock, 0);
+  await product.validate();
   product.sizes = [{ size: 42, quantity: 3 }, { size: 42, quantity: 2 }];
   await assert.rejects(product.validate(), /sizes/);
   assert.equal("sku" in product.toObject(), false);

@@ -5,18 +5,9 @@ import ProductGrid from '../components/product/ProductGrid'
 import { useProducts } from '../context/ProductContext'
 import { useUI } from '../context/UIContext'
 import { useWishlist } from '../context/WishlistContext'
-import { orders } from '../data/products'
+import { useOrders } from '../context/OrderContext'
 
 const steps = ['Order placed', 'Confirmed', 'Packed', 'Shipped', 'Out for delivery', 'Delivered']
-const getOrderList = () => {
-  try {
-    const stored = JSON.parse(localStorage.getItem('mg-orders'))
-    const saved = Array.isArray(stored) ? stored : []
-    return [...saved, ...orders.filter((order) => !saved.some((item) => item.id === order.id))]
-  } catch {
-    return orders
-  }
-}
 
 export function WishlistPage() {
   const { ids, removeFromWishlist } = useWishlist()
@@ -31,27 +22,24 @@ export function TrackOrderPage() {
   const [lookup, setLookup] = useState(null)
   const [error, setError] = useState('')
   const { notify } = useUI()
-  const submit = (event) => {
+  const { trackOrder, loading } = useOrders()
+  const submit = async (event) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const id = form.get('order').trim().toUpperCase()
-    const contact = form.get('contact').trim().toLowerCase()
-    const found = getOrderList().find((order) => {
-      const customer = order.customer || {}
-      const fullName = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
-      const email = customer.email || ''
-      const phone = customer.phone || ''
-      return order.id?.toUpperCase() === id && [email, phone, fullName].some((value) => String(value).toLowerCase() === contact)
-    })
-    if (!found) {
+    const phone = form.get('contact').trim()
+    try {
+      const found = await trackOrder(id, phone)
+      const order = { ...found, id: found.orderNumber, status: found.orderStatus, date: found.createdAt }
+      setLookup(order)
+      setError('')
+      notify('We found your order.')
+    } catch (lookupError) {
       setLookup(null)
-      setError('We couldn’t verify an order using those details. Please check your order number and email or phone.')
-      return
+      setError(lookupError.message)
     }
-    setLookup(found)
-    setError('')
-    notify('We found your order.')
   }
-  const activeStep = lookup?.status === 'Delivered' ? 5 : lookup?.status === 'Out for Delivery' ? 4 : lookup?.status === 'Shipped' ? 3 : lookup?.status === 'Confirmed' ? 1 : 0
-  return <main className="subpage track-page"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><span>Track your order</span></div><div className="track-hero"><span className="eyebrow">FROM OUR DOOR TO YOURS</span><h1>Good things are <em>on the way.</em></h1><p>Enter your order number and checkout email or phone to see how your pair is getting along.</p><form className="track-form" onSubmit={submit}><label htmlFor="track-id">Order number</label><div><input name="order" id="track-id" placeholder="e.g. MG-24091852" required /><button className="button button-dark">Track order <Search size={15} /></button></div><label htmlFor="track-contact">Checkout email or phone number</label><input id="track-contact" name="contact" type="text" placeholder="Used when placing the order" required /></form>{error && <p className="validation-message">{error}</p>}</div>{lookup && <section className="tracking-result"><div className="tracking-result-head"><div><span className="eyebrow">ORDER {lookup.id}</span><h2>Your pair is on its way.</h2><p>Last updated today · Estimated delivery 3–5 business days</p></div><span className={`status-pill status-${lookup.status.toLowerCase().replaceAll(' ', '-')}`}>{lookup.status}</span></div><div className="timeline">{steps.map((step, index) => <div className={`timeline-step ${index <= activeStep ? 'complete' : ''}`} key={step}><span className="timeline-dot">{index < activeStep ? <Check size={13} /> : index === activeStep ? <span /> : null}</span><div><b>{step}</b>{index === 0 && <small>{lookup.date}</small>}{index === activeStep && <small>Looking good so far</small>}</div></div>)}</div></section>}</main>
+  const status = String(lookup?.status || 'pending').toLowerCase()
+  const activeStep = status === 'delivered' ? 5 : status === 'shipped' ? 3 : status === 'confirmed' ? 1 : 0
+  return <main className="subpage track-page"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><span>Track your order</span></div><div className="track-hero"><span className="eyebrow">FROM OUR DOOR TO YOURS</span><h1>Good things are <em>on the way.</em></h1><p>Enter your order number and checkout phone number to see how your pair is getting along.</p><form className="track-form" onSubmit={submit}><label htmlFor="track-id">Order number</label><div><input name="order" id="track-id" placeholder="e.g. ORD-20261003-ABC123" required /><button className="button button-dark" disabled={loading}>{loading ? 'Checking…' : 'Track order'} <Search size={15} /></button></div><label htmlFor="track-contact">Checkout phone number</label><input id="track-contact" name="contact" type="tel" placeholder="Used when placing the order" required /></form>{error && <p className="validation-message" role="alert">{error}</p>}</div>{lookup && <section className="tracking-result"><div className="tracking-result-head"><div><span className="eyebrow">ORDER {lookup.id}</span><h2>Your pair is on its way.</h2><p>Placed {new Date(lookup.date).toLocaleDateString()}</p></div><span className={`status-pill status-${status.replaceAll(' ', '-')}`}>{status}</span></div><div className="timeline">{steps.map((step, index) => <div className={`timeline-step ${index <= activeStep ? 'complete' : ''}`} key={step}><span className="timeline-dot">{index < activeStep ? <Check size={13} /> : index === activeStep ? <span /> : null}</span><div><b>{step}</b>{index === 0 && <small>{new Date(lookup.date).toLocaleDateString()}</small>}{index === activeStep && <small>Looking good so far</small>}</div></div>)}</div></section>}</main>
 }

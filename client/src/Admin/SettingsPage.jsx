@@ -4,11 +4,12 @@ import { useAdmin } from "./AdminContext";
 import { Button, Field, PageHeader } from "./AdminUI";
 
 export function SettingsPage() {
-  const { settings, updateSettings, notify } = useAdmin();
-  const [form, setForm] = useState(settings);
+  const { settings, updateSettings, notify, loading, error: loadError } = useAdmin();
+  const [formState, setForm] = useState(null);
+  const form = formState || settings;
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     if (
       !form.storeName.trim() ||
@@ -31,7 +32,7 @@ export function SettingsPage() {
         freeShippingThreshold: Number(form.freeShippingThreshold),
         processingDays: Number(form.processingDays),
       };
-      updateSettings(next);
+      await updateSettings(next);
       setForm(next);
       setSaved(true);
       setError("");
@@ -42,7 +43,21 @@ export function SettingsPage() {
     }
   }
   const set = (key, value) =>
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => ({ ...(current || settings), [key]: value }));
+  if (loading || loadError) {
+    return (
+      <>
+        <PageHeader
+          eyebrow="WORKSPACE"
+          title="Settings"
+          description="Store details, checkout, and fulfillment preferences."
+        />
+        {loading
+          ? <p className="admin-inline-hint">Loading store settings…</p>
+          : <p className="admin-form-error" role="alert">Store settings are unavailable: {loadError}</p>}
+      </>
+    );
+  }
   return (
     <>
       <PageHeader
@@ -91,6 +106,7 @@ export function SettingsPage() {
                     value={form.currency}
                     onChange={(event) => set("currency", event.target.value)}
                   >
+                    <option>PKR</option>
                     <option>CAD</option>
                     <option>USD</option>
                     <option>EUR</option>
@@ -117,7 +133,7 @@ export function SettingsPage() {
               </div>
               <div className="admin-form-fields">
                 <Field
-                  label="Free shipping threshold (cents)"
+                  label="Free shipping threshold (PKR)"
                   type="number"
                   min="0"
                   value={form.freeShippingThreshold}
@@ -127,7 +143,7 @@ export function SettingsPage() {
                   hint="Orders above this value ship free."
                 />
                 <Field
-                  label="Standard shipping (cents)"
+                  label="Standard shipping (PKR)"
                   type="number"
                   min="0"
                   value={form.standardShipping}
@@ -136,7 +152,7 @@ export function SettingsPage() {
                   }
                 />
                 <Field
-                  label="Express shipping (cents)"
+                  label="Express shipping (PKR)"
                   type="number"
                   min="0"
                   value={form.expressShipping}
@@ -163,31 +179,16 @@ export function SettingsPage() {
                 <p>Choose the payment options shown to customers.</p>
               </div>
               <div className="admin-payment-options">
-                {["Credit card", "Apple Pay", "PayPal", "Google Pay"].map(
-                  (method) => (
-                    <label key={method}>
-                      <input
-                        type="checkbox"
-                        checked={(form.acceptedPayments || []).includes(method)}
-                        onChange={(event) =>
-                          set(
-                            "acceptedPayments",
-                            event.target.checked
-                              ? [...(form.acceptedPayments || []), method]
-                              : form.acceptedPayments.filter(
-                                  (item) => item !== method,
-                                ),
-                          )
-                        }
-                      />
-                      <span>
-                        <CreditCardIcon method={method} />
-                      </span>
-                      <strong>{method}</strong>
-                      <i />
-                    </label>
-                  ),
-                )}
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.cashOnDeliveryEnabled)}
+                    onChange={(event) => set("cashOnDeliveryEnabled", event.target.checked)}
+                  />
+                  <span><CreditCardIcon method="Cash on Delivery" /></span>
+                  <strong>Cash on Delivery</strong>
+                  <i />
+                </label>
               </div>
             </div>
           </section>
@@ -223,11 +224,9 @@ export function SettingsPage() {
             <span className="admin-settings-note-icon">
               <ShieldIcon />
             </span>
-            <h2>Local demo workspace</h2>
+            <h2>Backend configuration</h2>
             <p className="admin-settings-hint">
-              Admin data is saved in this browser using local storage. These
-              settings are a preview and are not connected to a payment or
-              shipping provider.
+              Store settings are saved through the backend. Checkout currently supports guest orders with cash on delivery only.
             </p>
           </section>
         </aside>

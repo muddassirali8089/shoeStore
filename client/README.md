@@ -1,13 +1,19 @@
-# MGEARS storefront and admin
+# ShoeStore storefront and admin
 
-A responsive, frontend-only footwear storefront and separate store management panel built with React, Vite, Tailwind CSS, React Router, and Lucide icons. There is no backend, database, real authentication service, or payment integration.
+React/Vite storefront and store-management interface integrated with the Express API in `../server`.
 
-## Run locally
+## Configure and run
+
+The client reads `VITE_API_URL` as the API base URL (including `/api/v1`). Copy `.env.example` to `.env.local` and adjust it if the API is hosted elsewhere. The default is `http://localhost:5000/api/v1`.
+
+Run the backend and configure its database, JWT, email, and image-storage environment first. Product creation and image uploads require valid backend admin authentication and a configured Cloudinary account. Then:
 
 ```sh
 npm install
 npm run dev
 ```
+
+The server must allow the Vite client origin through `CLIENT_ORIGIN`.
 
 ## Verify
 
@@ -16,32 +22,32 @@ npm run lint
 npm run build
 ```
 
-## Customer routes
+## Customer routes and data
 
-- `/` — Home
-- `/shop`, `/search`, `/category/:category` — Searchable and filterable catalog
-- `/product/:id` — Product details
-- `/cart`, `/checkout`, `/order-success` — Guest shopping and checkout
-- `/wishlist`, `/track-order` — Guest wishlist and order tracking
-- `/return-policy`, `/shipping-policy`, `/size-guide`, `/contact`, `/about` — Customer support
+- `/`, `/shop`, `/search`, `/category/:category` — API-backed catalog and taxonomy
+- `/product/:id` — product details
+- `/cart`, `/checkout`, `/order-success` — guest cart and server-confirmed checkout
+- `/wishlist` — browser-local guest wishlist
+- `/track-order` — order lookup by order number and checkout phone
+- `/return-policy`, `/shipping-policy`, `/size-guide`, `/contact`, `/about` — support pages
 
-Buyers do not log in or create customer accounts. Checkout collects guest contact and delivery details and saves mock orders in local storage.
+Guest checkout submits only cash-on-delivery orders. The backend validates product IDs, selected size quantities and availability and calculates the confirmed order totals. The cart/wishlist remain local. There are no customer-account, product-review, online-payment, public discount-validation/redemption, or contact-submission endpoints, so those demo/support experiences remain unconnected.
 
-## Admin routes
+## Admin routes and data
 
-Open `/admin/login` or `/login`; both lead to the admin-only sign-in screen. Demo credentials are `admin@example.com` / `admin123`. The storefront footer also links to **Admin login**.
+Open `/admin/login` and authenticate using credentials for an admin account configured on the backend. Admin pages use bearer-token authentication; no demo password or mock browser authentication is provided.
 
-- `/admin/dashboard`
+- `/admin/dashboard`, `/admin/inventory`, `/admin/settings`
 - `/admin/products`, `/admin/products/add`, `/admin/products/edit/:id`
 - `/admin/categories`, `/admin/categories/add`, `/admin/categories/edit/:id`
 - `/admin/brands`, `/admin/brands/add`, `/admin/brands/edit/:id`
 - `/admin/orders`, `/admin/orders/:id`
 - `/admin/customers`, `/admin/customers/:id`
-- `/admin/inventory`, `/admin/discounts`, `/admin/settings`
+- `/admin/discounts`
 - `/admin/forgot-password`, `/admin/verify-code`, `/admin/reset-password`
 
-Admin products use condition values, selectable size arrays, and up to four browser-selected images. Image files are resized and stored as browser data; there is no upload server. The admin is a frontend-only mock and is not a security boundary.
+Product administration uploads the original browser-selected image files (up to four) and retains existing backend image URLs. Forgot-password codes are delivered through the backend email configuration.
 
-Password recovery is also a frontend demo: only `admin@example.com` is accepted, the 6-digit code is shown on the verification page instead of being emailed, and it expires after five minutes. The mock password is stored in local storage and should never be treated as real authentication.
+## Configuration
 
-Cart, wishlist, product catalog, categories, brands, guest orders, admin session, discounts, and settings use React Context and browser local storage for persistence. Product photography is loaded from Unsplash.
+See `../server/README.md` for API routes and backend setup. Never put backend secrets in client environment variables; only the public API base URL belongs here.

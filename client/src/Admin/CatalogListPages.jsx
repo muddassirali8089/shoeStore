@@ -16,6 +16,7 @@ function CatalogList({ kind }) {
     updateProducts,
     updateCategories,
     updateBrands,
+    removeProduct,
     notify,
   } = useAdmin();
   const config = {
@@ -102,18 +103,10 @@ function CatalogList({ kind }) {
     if (maxPrice && Number(item.price) > Number(maxPrice)) return false;
     return true;
   });
-  const remove = () => {
+  const remove = async () => {
     try {
-      const next = config.data.filter((item) => item.id !== deleting.id);
-      config.set(next);
-      if (kind === "products")
-        updateCategories(
-          categories.map((category) => ({
-            ...category,
-            productCount: next.filter((item) => item.category === category.name)
-              .length,
-          })),
-        );
+      if (kind === "products") await removeProduct(deleting.id);
+      else await config.set(config.data.filter((item) => item.id !== deleting.id));
       notify(
         `${config.singular[0].toUpperCase()}${config.singular.slice(1)} removed.`,
       );

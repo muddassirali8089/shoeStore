@@ -5,7 +5,8 @@ import { makeId, useAdmin } from "./AdminContext";
 import { Button, Field, Modal, PageHeader } from "./AdminUI";
 
 export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
-  const { id } = useParams();
+  const routeParams = useParams();
+  const id = embedded ? null : routeParams.id;
   const navigate = useNavigate();
   const { categories, brands, updateCategories, updateBrands, notify } =
     useAdmin();
@@ -23,7 +24,7 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
   const [singular, plural] = labels[kind];
   const set = (key, value) =>
     setForm((current) => ({ ...current, [key]: value }));
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     const name = String(form.name || "").trim();
     if (!name) {
@@ -53,7 +54,7 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
     try {
-      setters[kind](
+      await setters[kind](
         item
           ? records.map((record) => (record.id === item.id ? data : record))
           : [data, ...records],
@@ -102,8 +103,8 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
         />
         <Field
           label="URL slug"
-          value={form.slug || ""}
-          onChange={(event) => set("slug", event.target.value)}
+          value={(form.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}
+          readOnly
           placeholder="generated-from-name"
         />
         {kind === "categories" && (
@@ -202,7 +203,7 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
           </p>
         )}
         <div className="admin-form-footer">
-          <span>Changes are saved to this browser’s local store data.</span>
+          <span>Changes are saved to the ShoeStore backend.</span>
           <div>
             <Button
               variant="subtle"
@@ -221,9 +222,17 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
 }
 
 export function CategoryFormPage() {
-  return <CatalogForm kind="categories" />;
+  return <CatalogFormRoute kind="categories" />;
 }
 
 export function BrandFormPage() {
-  return <CatalogForm kind="brands" />;
+  return <CatalogFormRoute kind="brands" />;
+}
+
+function CatalogFormRoute({ kind }) {
+  const { loading, error } = useAdmin();
+  const title = kind === "categories" ? "Categories" : "Brands";
+  if (loading) return <PageHeader eyebrow={title.toUpperCase()} title={`Loading ${title.toLowerCase()}…`} />;
+  if (error) return <PageHeader eyebrow={title.toUpperCase()} title={`${title} unavailable: ${error}`} />;
+  return <CatalogForm kind={kind} />;
 }

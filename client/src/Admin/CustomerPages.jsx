@@ -1,56 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowRight, Download, Eye, Users } from "lucide-react";
 import { money, useAdmin } from "./AdminContext";
 import { AdminTable, Button, PageHeader, StatusBadge, Toolbar, moneyCell } from "./AdminUI";
 import { shortDate, fullName, customerInitials, exportCSV, NotFoundPanel } from "./adminPageUtils";
 
-function customerRecords(orders) {
-  const map = new Map();
-  orders.forEach((order) => {
-    const customer = order.customer || {};
-    const email = String(customer.email || "")
-      .toLowerCase()
-      .trim();
-    const key = email || `${fullName(customer)}-${customer.phone || order.id}`;
-    const row = map.get(key) || {
-      id: encodeURIComponent(email || key),
-      email,
-      customer,
-      orders: [],
-      spent: 0,
-      lastOrder: order.date,
-    };
-    row.orders.push(order);
-    if (order.status !== "cancelled") row.spent += Number(order.total) || 0;
-    if (new Date(order.date) > new Date(row.lastOrder)) {
-      row.lastOrder = order.date;
-      row.customer = customer;
-    }
-    map.set(key, row);
-  });
-  return [...map.values()].sort(
-    (a, b) => new Date(b.lastOrder) - new Date(a.lastOrder),
-  );
-}
-
 export function CustomersPage() {
-  const { orders } = useAdmin();
+  const { customers, orders, loading, error } = useAdmin();
   const [search, setSearch] = useState("");
-  const records = customerRecords(orders);
+  const records = customers;
   const columns = [
     {
       key: "customer",
       label: "Customer",
       searchValue: (row) =>
-        `${fullName(row.customer)} ${row.email} ${row.customer?.phone || ""}`,
+        `${row.name || ""} ${row.email || ""} ${row.phone || ""}`,
       render: (row) => (
         <div className="admin-name-cell">
           <span className="admin-order-avatar">
-            {customerInitials(row.customer)}
+            {customerInitials({ fullName: row.name })}
           </span>
           <span>
-            <strong>{fullName(row.customer)}</strong>
+            <strong>{row.name || "Guest customer"}</strong>
             <small>{row.email || "No email address"}</small>
           </span>
         </div>
@@ -60,14 +31,14 @@ export function CustomersPage() {
       key: "orders",
       label: "Orders",
       align: "right",
-      render: (row) => row.orders.length,
+      render: (row) => row.orderCount || 0,
     },
     {
       key: "spent",
       label: "Total spent",
       align: "right",
-      sortValue: (row) => row.spent,
-      render: (row) => moneyCell(row.spent),
+      sortValue: (row) => row.totalSpent,
+      render: (row) => moneyCell(row.totalSpent),
     },
     {
       key: "lastOrder",
@@ -82,8 +53,8 @@ export function CustomersPage() {
       render: (row) => (
         <Link
           className="admin-icon-button"
-          to={`/admin/customers/${row.id}`}
-          aria-label={`View ${fullName(row.customer)}`}
+          to={`/admin/customers/${encodeURIComponent(row.identifier)}`}
+          aria-label={`View ${row.name}`}
         >
           <Eye size={16} />
         </Link>
@@ -95,7 +66,7 @@ export function CustomersPage() {
       <PageHeader
         eyebrow="RELATIONSHIPS"
         title="Customers"
-        description="A customer list built from the contact details on store orders."
+        description="Guest customer records derived from completed store orders."
         actions={
           <Button
             variant="subtle"
@@ -121,6 +92,8 @@ export function CustomersPage() {
         >
           <span className="admin-result-count">{records.length} customers</span>
         </Toolbar>
+        {loading && <p className="admin-inline-hint">Loading customer records…</p>}
+        {error && <p className="admin-form-error" role="alert">{error}</p>}
         <AdminTable
           rows={records}
           columns={columns}
@@ -134,12 +107,45 @@ export function CustomersPage() {
 
 export function CustomerDetailPage() {
   const { id } = useParams();
-  const { orders } = useAdmin();
-  const key = decodeURIComponent(id).toLowerCase();
-  const customer = customerRecords(orders).find(
-    (row) =>
-      decodeURIComponent(row.id).toLowerCase() === key || row.email === key,
-  );
+  const { fetchCustomer } = useAdmin();
+  const [customer, setCustomer] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const result = await fetchCustomer(decodeURIComponent(id));
+        if (!active) return;
+        setCustomer({
+          id: result.identifier,
+          email: result.email,
+          spent: result.totalSpent,
+          customer: {
+            fullName: result.name,
+            email: result.email,
+            phone: result.phone,
+            address: result.orders?.[0]?.shippingAddress?.address || "",
+            city: result.city,
+            province: result.province,
+          },
+          orders: (result.orders || []).map((order) => ({
+            ...order,
+            id: order.orderNumber,
+            date: order.createdAt,
+            status: order.orderStatus,
+            customer: { ...order.customer, fullName: order.customer?.name },
+            items: order.items || [],
+          })),
+        });
+      } catch (loadError) {
+        if (active) setError(loadError.message);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [fetchCustomer, id]);
+  if (error)
+    return <><NotFoundPanel title={error} back="/admin/customers/list" /></>;
   if (!customer)
     return (
       <NotFoundPanel title="Customer not found" back="/admin/customers/list" />

@@ -11,7 +11,6 @@ function MetricCard({
   direction = "up",
   icon: Icon,
   footnote,
-  spark = [4, 7, 5, 9, 8, 13, 11, 16, 13, 19, 17, 23],
 }) {
   return (
     <article className="admin-metric-card">
@@ -34,43 +33,14 @@ function MetricCard({
           {delta}
         </span>
         <span>{footnote}</span>
-        <svg
-          className={`admin-sparkline spark-${direction}`}
-          viewBox="0 0 92 30"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <polyline
-            points={spark
-              .map((point, index) => `${index * 8.35},${28 - point}`)
-              .join(" ")}
-          />
-        </svg>
       </div>
     </article>
   );
 }
 
-const salesBars = [
-  38, 55, 44, 66, 51, 72, 60, 77, 54, 82, 67, 93, 70, 86, 62, 78, 52, 88, 74,
-  96, 65, 80, 59, 90, 72, 98, 67, 85,
-];
-
-const weekLabels = [
-  "Sep 02",
-  "Sep 06",
-  "Sep 10",
-  "Sep 14",
-  "Sep 18",
-  "Sep 22",
-  "Sep 26",
-];
-
 export function DashboardPage() {
-  const { products, orders } = useAdmin();
-  const revenue = orders
-    .filter((order) => order.status !== "cancelled")
-    .reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const { products, orders, dashboard, loading, error } = useAdmin();
+  const revenue = Number(dashboard?.totalSales) || 0;
   const activeProducts = products.filter(
     (product) => productStatus(product) === "Active",
   ).length;
@@ -86,7 +56,7 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        eyebrow="TUESDAY, SEPTEMBER 29, 2026"
+        eyebrow="LIVE STORE DATA"
         title="Good evening, Admin"
         description="Here’s what’s happening with your store today."
         actions={
@@ -97,46 +67,43 @@ export function DashboardPage() {
       />
       <div className="admin-metrics-grid">
         <MetricCard
-          label="Gross sales"
+          label="Revenue received"
           value={money(revenue)}
-          delta="12.8%"
-          footnote="vs. previous period"
+          delta="Recorded"
+          footnote="delivered and paid"
           icon={CircleDollarSign}
         />
         <MetricCard
           label="Orders"
           value={orders.length.toLocaleString()}
-          delta="8.2%"
-          footnote="vs. previous period"
+          delta={dashboard?.pendingOrders ?? 0}
+          footnote="pending orders"
           icon={ShoppingBag}
-          spark={[3, 6, 5, 11, 8, 13, 15, 12, 17, 21, 18, 25]}
         />
         <MetricCard
           label="Products active"
           value={activeProducts}
-          delta="3.1%"
+          delta={activeProducts}
           direction="down"
-          footnote="vs. previous period"
+          footnote="active catalog products"
           icon={Package}
-          spark={[20, 17, 18, 14, 16, 13, 14, 10, 12, 8, 10, 7]}
         />
         <MetricCard
           label="Customers"
-          value={new Set(
-            orders.map((order) => order.customer?.email).filter(Boolean),
-          ).size.toLocaleString()}
-          delta="18.4%"
-          footnote="vs. previous period"
+          value={Number(dashboard?.totalCustomers || 0).toLocaleString()}
+          delta={dashboard?.totalCustomers ?? 0}
+          footnote="guest customers"
           icon={Users}
-          spark={[3, 5, 8, 6, 12, 9, 13, 16, 13, 20, 18, 26]}
         />
       </div>
+      {loading && <p className="admin-inline-hint">Loading dashboard data…</p>}
+      {error && <p className="admin-form-error" role="alert">{error}</p>}
       <div className="admin-dashboard-grid">
         <section className="admin-card admin-revenue-card">
           <div className="admin-card-heading">
             <div>
               <h2>Sales over time</h2>
-              <p>A look at your store’s recent performance</p>
+              <p>Gross sales from delivered orders with payment received</p>
             </div>
             <SelectField value="30 days" onChange={() => {}}>
               <option>30 days</option>
@@ -147,28 +114,15 @@ export function DashboardPage() {
           <div className="admin-chart-summary">
             <strong>{money(revenue)}</strong>
             <span>
-              <ArrowUpRight size={14} /> 12.8%
+              <ArrowUpRight size={14} /> Recorded sales
             </span>
           </div>
-          <div
-            className="admin-bar-chart"
-            role="img"
-            aria-label="Sales over the last 30 days, trending upward"
-          >
-            {salesBars.map((height, index) => (
-              <div
-                key={index}
-                className={`admin-chart-bar${index === salesBars.length - 3 ? " highlighted" : ""}`}
-                style={{ height: `${height}%` }}
-                title={`${height}% of peak`}
-              />
+          <div className="admin-bar-chart" role="img" aria-label="Sales totals from the backend">
+            {orders.slice(0, 28).map((order) => (
+              <div key={order.id} className="admin-chart-bar" style={{ height: `${Math.max(4, (Number(order.total) / Math.max(revenue, Number(order.total), 1)) * 100)}%` }} title={`${order.id}: ${money(order.total)}`} />
             ))}
           </div>
-          <div className="admin-chart-labels">
-            {weekLabels.map((label) => (
-              <span key={label}>{label}</span>
-            ))}
-          </div>
+          {!orders.length && <p className="admin-inline-hint">No order sales data is available yet.</p>}
         </section>
         <section className="admin-card admin-channel-card">
           <div className="admin-card-heading">

@@ -3,6 +3,8 @@ import { CartProvider } from './context/CartContext'
 import { ProductProvider } from './context/ProductContext'
 import { UIProvider } from './context/UIContext'
 import { WishlistProvider } from './context/WishlistContext'
+import { OrderProvider } from './context/OrderContext'
+import { useProducts } from './context/ProductContext'
 import AnnouncementBar from './components/layout/AnnouncementBar'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
@@ -17,7 +19,8 @@ import { AboutPage, ContactPage, NotFoundPage, ReturnPolicyPage, ShippingPolicyP
 import AdminRoutes from './Admin'
 
 function MainLayout() {
-  return <><AnnouncementBar /><Header /><Outlet /><Footer /><CartDrawer /><ToastViewport /></>
+  const { error } = useProducts()
+  return <><AnnouncementBar /><Header />{error && <p className="validation-message" role="alert">Store catalog unavailable: {error}</p>}<Outlet /><Footer /><CartDrawer /><ToastViewport /></>
 }
 
 function StoreRoutes() {
@@ -44,9 +47,9 @@ function StoreRoutes() {
 }
 
 export default function App() {
-  return <UIProvider><ProductProvider><CartProvider><WishlistProvider><BrowserRouter><Routes>
+  return <UIProvider><ProductProvider><CartProvider><WishlistProvider><OrderProvider><BrowserRouter><Routes>
     <Route path="/admin/*" element={<AdminRoutes />} />
     <Route path="/login" element={<Navigate to="/admin/login" replace />} />
     <Route path="/*" element={<StoreRoutes />} />
-  </Routes></BrowserRouter></WishlistProvider></CartProvider></ProductProvider></UIProvider>
+  </Routes></BrowserRouter></OrderProvider></WishlistProvider></CartProvider></ProductProvider></UIProvider>
 }

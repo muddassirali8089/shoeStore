@@ -8,10 +8,14 @@ import { productStatus, productImage, fallbackPhoto, NotFoundPanel } from "./adm
 export function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { products } = useAdmin();
+  const { products, loading, error } = useAdmin();
   const product = products.find(
     (item) => String(item.id) === decodeURIComponent(id),
   );
+  if (!product && loading)
+    return <PageHeader eyebrow="PRODUCTS" title="Loading product…" />;
+  if (!product && error)
+    return <PageHeader eyebrow="PRODUCTS" title={`Products unavailable: ${error}`} />;
   if (!product)
     return (
       <NotFoundPanel title="Product not found" back="/admin/products/list" />

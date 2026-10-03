@@ -96,7 +96,7 @@ export function DiscountsPage() {
     setError("");
     setFormOpen(true);
   }
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     const code = String(form.code || "")
       .trim()
@@ -124,13 +124,15 @@ export function DiscountsPage() {
     const next = {
       ...form,
       id: editing?.id || makeId("discount"),
+      name: String(form.name || code).trim(),
       code,
+      status: form.status === "Disabled" || form.status === "Expired" ? "Inactive" : form.status,
       value: Number(form.value) || 0,
       uses: Number(form.uses) || 0,
       usageLimit: Number(form.usageLimit) || 0,
     };
     try {
-      updateDiscounts(
+      await updateDiscounts(
         editing
           ? discounts.map((item) => (item.id === editing.id ? next : item))
           : [next, ...discounts],
@@ -141,9 +143,9 @@ export function DiscountsPage() {
       setError(saveError.message);
     }
   }
-  function remove() {
+  async function remove() {
     try {
-      updateDiscounts(discounts.filter((item) => item.id !== deleting.id));
+      await updateDiscounts(discounts.filter((item) => item.id !== deleting.id));
       notify(`${deleting.code} removed.`);
     } catch (error) {
       notify(error.message, "error");
@@ -294,8 +296,7 @@ export function DiscountsPage() {
               >
                 <option>Active</option>
                 <option>Scheduled</option>
-                <option>Expired</option>
-                <option>Disabled</option>
+                <option>Inactive</option>
               </select>
             </Field>
             {error && (

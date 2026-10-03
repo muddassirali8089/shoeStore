@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowRight, Check, CircleDollarSign, Download, Eye, Truck } from "lucide-react";
 import { money, orderSubtotal, useAdmin } from "./AdminContext";
@@ -119,7 +119,7 @@ export function OrdersPage() {
   const rows = orders.filter(
     (order) => filter === "All statuses" || order.status === filter,
   );
-  function changeStatus(order, status) {
+  async function changeStatus(order, status) {
     if (!statusTransitions[order.status]?.includes(status)) return;
     if (["cancelled", "returned"].includes(status)) {
       setStatusConfirm({ order, status });
@@ -127,7 +127,7 @@ export function OrdersPage() {
       return;
     }
     try {
-      updateOrders(
+      await updateOrders(
         orders.map((item) =>
           item.id === order.id ? { ...item, status } : item,
         ),
@@ -138,10 +138,10 @@ export function OrdersPage() {
     }
     setEditing(null);
   }
-  function confirmStatusChange() {
+  async function confirmStatusChange() {
     const { order, status } = statusConfirm;
     try {
-      updateOrders(
+      await updateOrders(
         orders.map((item) =>
           item.id === order.id
             ? { ...item, status }
@@ -237,38 +237,61 @@ export function OrdersPage() {
 
 export function OrderDetailPage() {
   const { id } = useParams();
-  const { orders, products, updateOrders, notify } = useAdmin();
-  const order = orders.find(
+  const { orders, products, updateOrders, fetchOrder, notify, loading } = useAdmin();
+  const listOrder = orders.find(
     (item) => String(item.id) === decodeURIComponent(id),
   );
+  const [detailOrder, setOrder] = useState(null);
+  const [detailError, setDetailError] = useState(null);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      if (!listOrder?._id) return;
+      try {
+        const loaded = await fetchOrder(listOrder._id);
+        if (active) setOrder(loaded);
+      } catch (error) {
+        if (active) setDetailError({ id: listOrder._id, message: error.message });
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [fetchOrder, listOrder?._id]);
   const [statusConfirm, setStatusConfirm] = useState(null);
+  const order = detailOrder?._id === listOrder?._id ? detailOrder : listOrder;
+  if (!order && loading)
+    return <PageHeader eyebrow="COMMERCE" title="Loading order…" />;
   if (!order)
     return <NotFoundPanel title="Order not found" back="/admin/orders/list" />;
+  if (detailError?.id === listOrder?._id)
+    return <NotFoundPanel title={detailError.message} back="/admin/orders/list" />;
   const subtotal = orderSubtotal(order);
   const discount = Number(order.discount) || 0;
   const shipping =
     Number(order.shipping) ||
     Math.max(0, Number(order.total) - subtotal + discount);
-  function updateStatus(status) {
+  async function updateStatus(status) {
     if (!statusTransitions[order.status]?.includes(status)) return;
     try {
-      updateOrders(
+      await updateOrders(
         orders.map((item) =>
           item.id === order.id ? { ...item, status } : item,
         ),
       );
+      setOrder(await fetchOrder(order._id));
       notify(`${order.id} is now ${statusLabel(status).toLowerCase()}.`);
     } catch (error) {
       notify(error.message, "error");
     }
   }
-  function updatePaymentStatus(status) {
+  async function updatePaymentStatus(status) {
     try {
-      updateOrders(
+      await updateOrders(
         orders.map((item) =>
           item.id === order.id ? { ...item, paymentStatus: status } : item,
         ),
       );
+      setOrder(await fetchOrder(order._id));
       notify(`${order.id} payment marked ${status}.`);
     } catch (error) {
       notify(error.message, "error");

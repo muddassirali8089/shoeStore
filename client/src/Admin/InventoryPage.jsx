@@ -5,12 +5,15 @@ import { AdminTable, Button, Field, Modal, PageHeader, SelectField, StatusBadge,
 import { productImage, fallbackPhoto } from "./adminPageUtils";
 
 export function InventoryPage() {
-  const { products, updateProducts, notify } = useAdmin();
+  const { products, inventory, updateProducts, refreshInventory, notify, loading } = useAdmin();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All inventory");
   const [editing, setEditing] = useState(null);
   const [stock, setStock] = useState("");
-  const low = products.filter((product) => Number(product.stock) <= 5).length;
+  const [editingSize, setEditingSize] = useState("");
+  const low = inventory.length
+    ? inventory.filter((row) => row.status === "LOW STOCK").length
+    : products.filter((product) => Number(product.stock) <= 5).length;
   const rows = products.filter(
     (product) =>
       filter === "All inventory" ||
@@ -73,7 +76,8 @@ export function InventoryPage() {
           className="admin-button admin-button-outline admin-button-small"
           onClick={() => {
             setEditing(p);
-            setStock(p.stock);
+            setEditingSize(String(p.sizes?.[0]?.size || ""));
+            setStock(String(p.sizes?.[0]?.quantity ?? 0));
           }}
         >
           Adjust stock
@@ -81,17 +85,21 @@ export function InventoryPage() {
       ),
     },
   ];
-  function saveStock(event) {
+  async function saveStock(event) {
     event.preventDefault();
     const quantity = Number(stock);
     if (!Number.isInteger(quantity) || quantity < 0) return;
     try {
-      updateProducts(
-        products.map((product) =>
-          product.id === editing.id ? { ...product, stock: quantity } : product,
-        ),
+      const updatedSizes = (editing.sizes || []).map((entry) => (
+        Number(entry.size) === Number(editingSize) ? { ...entry, quantity } : entry
+      ))
+      await updateProducts(
+        products.map((product) => product.id === editing.id
+          ? { ...product, sizes: updatedSizes }
+          : product),
       );
-      notify(`${editing.name} stock updated to ${quantity}.`);
+      await refreshInventory()
+      notify(`${editing.name}, size ${editingSize} stock updated to ${quantity}.`);
       setEditing(null);
     } catch (error) {
       notify(error.message, "error");
@@ -107,7 +115,10 @@ export function InventoryPage() {
           <Button
             variant="subtle"
             icon={RefreshCw}
-            onClick={() => notify("Inventory is up to date.")}
+            onClick={async () => {
+              try { await refreshInventory(); notify("Inventory is up to date."); }
+              catch (error) { notify(error.message, "error"); }
+            }}
           >
             Refresh stock
           </Button>
@@ -161,6 +172,7 @@ export function InventoryPage() {
           </SelectField>
           <span className="admin-result-count">{rows.length} products</span>
         </Toolbar>
+        {loading && <p className="admin-inline-hint">Loading store inventory…</p>}
         <AdminTable rows={rows} columns={columns} searchValue={search} />
       </div>
       {editing && (
@@ -170,6 +182,15 @@ export function InventoryPage() {
           onClose={() => setEditing(null)}
         >
           <form onSubmit={saveStock}>
+            <Field label="Shoe size">
+              <select value={editingSize} onChange={(event) => {
+                const size = event.target.value
+                setEditingSize(size)
+                setStock(String(editing.sizes?.find((entry) => Number(entry.size) === Number(size))?.quantity ?? 0))
+              }}>
+                {(editing.sizes || []).map((entry) => <option key={entry.size} value={entry.size}>{entry.size}</option>)}
+              </select>
+            </Field>
             <Field
               label="Available quantity"
               type="number"

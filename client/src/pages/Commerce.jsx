@@ -1,10 +1,10 @@
-import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, Heart, Minus, Plus, ShieldCheck, Trash2, Truck } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useProducts } from '../context/ProductContext'
 import { useUI } from '../context/UIContext'
 import { useWishlist } from '../context/WishlistContext'
+import { useOrders } from '../context/OrderContext'
 
 const money = (amount) => `Rs. ${amount.toLocaleString('en-PK')}`
 
@@ -15,7 +15,7 @@ function CartItem({ item, product, cart }) {
 }
 
 function Summary({ cart, checkout = false, placing = false }) {
-  return <aside className="order-summary"><span className="eyebrow">THE TOTALS</span><h2>Order summary</h2><div className="summary-row"><span>Subtotal</span><span>{money(cart.subtotal)}</span></div><div className="summary-row"><span>Delivery</span><span>{cart.shipping === 0 ? 'Complimentary' : money(cart.shipping)}</span></div>{cart.discount > 0 && <div className="summary-row discount-row"><span>Discount</span><span>−{money(cart.discount)}</span></div>}  <div className="summary-total"><span>Total</span><strong>{money(cart.total)}</strong></div><small>Prices include all applicable taxes.</small>{checkout ? <button type="submit" form="checkout-form" disabled={placing} className="button button-dark full-button">{placing ? 'Placing order…' : 'Place my order'} <ArrowRight size={16} /></button> : <Link className="button button-dark full-button" to="/checkout">Continue to checkout <ArrowRight size={16} /></Link>}<div className="secure-note"><ShieldCheck size={16} /> Safe, secure checkout</div></aside>
+  return <aside className="order-summary"><span className="eyebrow">THE TOTALS</span><h2>Order summary</h2><div className="summary-row"><span>Subtotal</span><span>{money(cart.subtotal)}</span></div><div className="summary-row"><span>Delivery</span><span>{cart.shipping === 0 ? 'Complimentary' : money(cart.shipping)}</span></div>{cart.discount > 0 && <div className="summary-row discount-row"><span>Discount</span><span>−{money(cart.discount)}</span></div>}  <div className="summary-total"><span>Total</span><strong>{money(cart.total)}</strong></div><small>Final prices and delivery are confirmed by the store.</small>{checkout ? <button type="submit" form="checkout-form" disabled={placing} className="button button-dark full-button">{placing ? 'Placing order…' : 'Place my order'} <ArrowRight size={16} /></button> : <Link className="button button-dark full-button" to="/checkout">Continue to checkout <ArrowRight size={16} /></Link>}<div className="secure-note"><ShieldCheck size={16} /> Safe, secure checkout</div></aside>
 }
 
 export function CartPage() {
@@ -30,63 +30,27 @@ export function CheckoutPage() {
   const { allProducts } = useProducts()
   const { notify } = useUI()
   const navigate = useNavigate()
-  const [payment, setPayment] = useState('Cash on Delivery')
-  const [placing, setPlacing] = useState(false)
-  const submit = (event) => {
+  const { placeGuestCodOrder, loading: placing, error } = useOrders()
+  const submit = async (event) => {
     event.preventDefault()
     if (!cart.items.length) { notify('Your bag is empty. Add a pair before checking out.', 'error'); navigate('/shop'); return }
-    setPlacing(true)
-    const form = new FormData(event.currentTarget)
-    const fullName = form.get('fullName').trim()
-    const [firstName = '', ...restName] = fullName.split(/\s+/)
-    const orderItems = cart.items.map((item) => {
-      const product = allProducts.find((entry) => entry.id === item.productId)
-      return {
-        ...item,
-        productSnapshot: product ? { id: product.id, name: product.name, brand: product.brand, category: product.category, thumbnail: product.thumbnail } : null,
-        unitPrice: product?.price ?? item.price,
-      }
-    })
-    const order = {
-      id: `MG-${Date.now().toString().slice(-8)}`,
-      date: new Date().toLocaleDateString('en-PK', { month: 'short', day: 'numeric', year: 'numeric' }),
-      createdAt: new Date().toISOString(),
-      status: 'Pending',
-      paymentStatus: payment === 'Cash on Delivery' ? 'COD' : 'Pending',
-      customer: { fullName, firstName, lastName: restName.join(' '), ...Object.fromEntries(form) },
-      items: orderItems,
-      subtotal: cart.subtotal,
-      discount: cart.discount,
-      shipping: cart.shipping,
-      total: cart.total,
-      payment,
-    }
-    window.setTimeout(() => {
-      sessionStorage.setItem('mg-last-order', JSON.stringify(order))
-      let previousOrders = []
-      try {
-        const stored = JSON.parse(localStorage.getItem('mg-orders'))
-        if (Array.isArray(stored)) previousOrders = stored
-      } catch (error) {
-        console.error('Could not read the saved demo orders.', error)
-        notify('The order history could not be read. Your order was not saved.')
-        setPlacing(false)
-        return
-      }
-      localStorage.setItem('mg-orders', JSON.stringify([order, ...previousOrders]))
-      window.dispatchEvent(new Event('mg-orders-updated'))
+    const fields = Object.fromEntries(new FormData(event.currentTarget))
+    try {
+      await placeGuestCodOrder(fields, cart.items)
       cart.clearCart()
       notify('Your order has been placed.')
       navigate('/order-success')
-    }, 650)
+    } catch (orderError) {
+      notify(orderError.message, 'error')
+    }
   }
-  return <main className="subpage checkout-page"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><Link to="/cart">Your bag</Link><span>/</span><span>Checkout</span></div><div className="page-title-row"><div><span className="eyebrow">ALMOST YOURS</span><h1>Checkout</h1></div><div className="checkout-secure"><ShieldCheck size={16} /> Secure, frontend-only checkout</div></div><div className="checkout-layout"><form className="checkout-form" id="checkout-form" onSubmit={submit}><section className="form-section"><div className="form-section-heading"><span>01</span><div><h2>Your details</h2><p>We’ll only use these to deliver your order.</p></div></div><div className="form-grid"><label className="wide">Full name<input name="fullName" autoComplete="name" required /></label><label>Email address<input name="email" type="email" autoComplete="email" required /></label><label>Phone number<input name="phone" type="tel" autoComplete="tel" placeholder="+92" required /></label></div></section><section className="form-section"><div className="form-section-heading"><span>02</span><div><h2>Delivery address</h2><p>We currently deliver all across Pakistan.</p></div></div><div className="form-grid"><label className="wide">Complete address<input name="address" autoComplete="street-address" required /></label><label>City<input name="city" autoComplete="address-level2" required /></label><label>Province<select name="province" required defaultValue=""><option value="" disabled>Select province</option>{['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', 'Islamabad Capital Territory', 'Other'].map((item) => <option key={item}>{item}</option>)}</select></label><label>Postal code<input name="postalCode" autoComplete="postal-code" required /></label><label className="wide">Order notes (optional)<textarea name="notes" rows="3" /></label></div></section><section className="form-section"><div className="form-section-heading"><span>03</span><div><h2>Payment</h2><p>Choose how you’d like to pay.</p></div></div><div className="payment-options">{['Cash on Delivery', 'Bank Transfer', 'Card Payment (demo)'].map((option) => <label className={payment === option ? 'payment-option selected' : 'payment-option'} key={option}><input type="radio" name="payment" checked={payment === option} onChange={() => setPayment(option)} /><span className="payment-radio" /><span><b>{option}</b><small>{option === 'Cash on Delivery' ? 'Pay when your order arrives' : option === 'Bank Transfer' ? 'We’ll share transfer details after confirmation' : 'Payment details are not collected in this demo'}</small></span></label>)}</div></section><p className="checkout-disclaimer"><ShieldCheck size={16} /> This is a frontend demo. No payment is collected and no real order is sent.</p></form><div className="checkout-summary-wrap"><Summary cart={cart} checkout placing={placing} /><div className="checkout-items-preview"><span className="eyebrow">IN YOUR BAG</span>{cart.items.map((item) => { const product = allProducts.find((entry) => entry.id === item.productId); return product && <div key={item.key}><img src={product.thumbnail} alt={product.name} /><span>{product.name}<small>EU {item.size} × {item.quantity}</small></span><b>{money(product.price * item.quantity)}</b></div> })}</div></div></div></main>
+  return <main className="subpage checkout-page"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><Link to="/cart">Your bag</Link><span>/</span><span>Checkout</span></div><div className="page-title-row"><div><span className="eyebrow">ALMOST YOURS</span><h1>Checkout</h1></div><div className="checkout-secure"><ShieldCheck size={16} /> Secure guest checkout</div></div><div className="checkout-layout"><form className="checkout-form" id="checkout-form" onSubmit={submit}><section className="form-section"><div className="form-section-heading"><span>01</span><div><h2>Your details</h2><p>We’ll only use these to deliver your order.</p></div></div><div className="form-grid"><label className="wide">Full name<input name="fullName" autoComplete="name" required /></label><label>Email address<input name="email" type="email" autoComplete="email" required /></label><label>Phone number<input name="phone" type="tel" autoComplete="tel" placeholder="+92" required /></label></div></section><section className="form-section"><div className="form-section-heading"><span>02</span><div><h2>Delivery address</h2><p>We currently deliver all across Pakistan.</p></div></div><div className="form-grid"><label className="wide">Complete address<input name="address" autoComplete="street-address" required /></label><label>City<input name="city" autoComplete="address-level2" required /></label><label>Province<select name="province" required defaultValue=""><option value="" disabled>Select province</option>{['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', 'Islamabad Capital Territory', 'Other'].map((item) => <option key={item}>{item}</option>)}</select></label><label>Postal code<input name="postalCode" autoComplete="postal-code" required /></label><label className="wide">Order notes (optional)<textarea name="notes" rows="3" /></label></div></section><section className="form-section"><div className="form-section-heading"><span>03</span><div><h2>Payment</h2><p>Available payment method</p></div></div><div className="payment-options"><label className="payment-option selected"><span className="payment-radio" /><span><b>Cash on Delivery</b><small>Pay when your order arrives</small></span></label></div></section>{error && <p className="validation-message" role="alert">{error}</p>}<p className="checkout-disclaimer"><ShieldCheck size={16} /> Guest checkout. Payment is collected on delivery; the store confirms prices and availability.</p></form><div className="checkout-summary-wrap"><Summary cart={cart} checkout placing={placing} /><div className="checkout-items-preview"><span className="eyebrow">IN YOUR BAG</span>{cart.items.map((item) => { const product = allProducts.find((entry) => entry.id === item.productId); return product && <div key={item.key}><img src={product.thumbnail} alt={product.name} /><span>{product.name}<small>EU {item.size} × {item.quantity}</small></span><b>{money(product.price * item.quantity)}</b></div> })}</div></div></div></main>
 }
 
 export function OrderSuccess() {
-  const { allProducts } = useProducts()
-  const order = (() => {
+  const { lastOrder } = useOrders()
+  const order = lastOrder || (() => {
     try { return JSON.parse(sessionStorage.getItem('mg-last-order')) } catch { return null }
   })()
-  return <main className="success-page"><div className="success-check"><Check size={32} /></div><span className="eyebrow">THANK YOU FOR SHOPPING WITH US</span><h1>Your order is <em>in good hands.</em></h1><p>We’ve got your order. A confirmation summary will be on its way soon.</p><div className="success-order-card"><div><span>ORDER NUMBER</span><b>{order?.id || 'MG-26092901'}</b></div><div><span>ESTIMATED DELIVERY</span><b>3–5 business days</b></div><div><span>ORDER TOTAL</span><b>{money(order?.total || 0)}</b></div></div>{order?.customer && <div className="success-more"><section><span className="eyebrow">DELIVERING TO</span><b>{order.customer.fullName}</b><p>{order.customer.address}<br />{order.customer.city}, {order.customer.province} {order.customer.postalCode}</p></section><section><span className="eyebrow">IN THIS ORDER</span>{order.items.map((item) => { const product = allProducts.find((entry) => entry.id === item.productId) || item.productSnapshot; return product && <p key={item.key || item.productId}>{product.name} · EU {item.size} × {item.quantity}</p> })}</section></div>}<div className="success-actions"><Link className="button button-dark" to="/track-order">Track your order <ArrowRight size={16} /></Link><Link className="button button-outline" to="/shop">Continue shopping</Link></div><p className="demo-note">This is a frontend simulation. No real order or payment was processed.</p></main>
+  return <main className="success-page"><div className="success-check"><Check size={32} /></div><span className="eyebrow">THANK YOU FOR SHOPPING WITH US</span><h1>Your order is <em>in good hands.</em></h1><p>We’ve got your order. A confirmation summary will be on its way soon.</p>{order ? <><div className="success-order-card"><div><span>ORDER NUMBER</span><b>{order.id}</b></div><div><span>ESTIMATED DELIVERY</span><b>3–5 business days</b></div><div><span>ORDER TOTAL</span><b>{money(order.total)}</b></div></div>{order?.customer && <div className="success-more"><section><span className="eyebrow">DELIVERING TO</span><b>{order.customer.fullName}</b><p>{order.shippingAddress?.address}<br />{order.shippingAddress?.city}, {order.shippingAddress?.province} {order.shippingAddress?.postalCode}</p></section><section><span className="eyebrow">IN THIS ORDER</span>{order.items?.map((item, index) => <p key={`${item.product}-${index}`}>{item.name} · EU {item.size} × {item.quantity}</p>)}</section></div>}</> : <p>Your order confirmation is unavailable in this browser session. Use Track your order with your order number and phone.</p>}<div className="success-actions"><Link className="button button-dark" to="/track-order">Track your order <ArrowRight size={16} /></Link><Link className="button button-outline" to="/shop">Continue shopping</Link></div></main>
 }

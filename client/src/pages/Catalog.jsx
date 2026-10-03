@@ -7,6 +7,7 @@ import { useProducts } from '../context/ProductContext'
 
 const conditions = ['BrandNew', 'Premium 10/10', 'Excellent 9/10', 'Good 8/10', 'Used 7/10']
 const sortProducts = (items, sort) => [...items].sort((a, b) => sort === 'price-low' ? a.price - b.price : sort === 'price-high' ? b.price - a.price : sort === 'rating' ? b.rating - a.rating : sort === 'discount' ? b.discount - a.discount : sort === 'newest' ? Number(b.newArrival) - Number(a.newArrival) : Number(b.featured) - Number(a.featured))
+const slugify = (value = '') => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 export function CatalogPage({ searchMode = false }) {
   const { products, categories, brands, sizes } = useProducts()
   const [params, setParams] = useSearchParams()
@@ -27,7 +28,7 @@ export function CatalogPage({ searchMode = false }) {
       const term = query.toLowerCase()
       result = result.filter((product) => `${product.name} ${product.brand} ${product.category} ${product.description}`.toLowerCase().includes(term))
     }
-    if (currentCategory && currentCategory !== 'new-arrivals') result = result.filter((product) => product.category.toLowerCase() === currentCategory || product.gender.toLowerCase() === currentCategory)
+    if (currentCategory && currentCategory !== 'new-arrivals') result = result.filter((product) => slugify(product.category) === currentCategory || product.gender.toLowerCase() === currentCategory)
     if (currentCategory === 'new-arrivals' || params.get('category') === 'new-arrivals') result = result.filter((product) => product.newArrival)
     if (params.get('brand')) result = result.filter((product) => product.brand.toLowerCase() === params.get('brand').toLowerCase())
     if (params.get('size')) result = result.filter((product) => product.sizes.includes(Number(params.get('size'))))

@@ -47,8 +47,8 @@ function parseSizes(value) {
   if (!sizes) return undefined;
   if (!sizes.length) throw fail(400, "Add at least one shoe size and quantity.");
   const parsed = sizes.map((entry) => ({ size: Number(entry?.size), quantity: Number(entry?.quantity) }));
-  if (parsed.some(({ size, quantity }) => !Number.isFinite(size) || size <= 0 || !Number.isInteger(quantity) || quantity <= 0)) {
-    throw fail(400, "Each size must be numeric and have a positive whole-number quantity.");
+  if (parsed.some(({ size, quantity }) => !Number.isFinite(size) || size <= 0 || !Number.isInteger(quantity) || quantity < 0)) {
+    throw fail(400, "Each size must be numeric and have a non-negative whole-number quantity.");
   }
   if (new Set(parsed.map(({ size }) => size)).size !== parsed.length) throw fail(400, "Duplicate shoe sizes are not allowed.");
   return parsed.sort((left, right) => left.size - right.size);
@@ -299,4 +299,3 @@ export async function deleteProduct(req, res) {
     return sendError(res, error, "Unable to delete product.");
   }
 }
-

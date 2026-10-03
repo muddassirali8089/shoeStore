@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, ChevronLeft, Package, Plus, Save, Trash2, X } from "lucide-react";
-import { makeId, useAdmin } from "./AdminContext";
+import { useAdmin } from "./AdminContext";
 import { Button, Field, PageHeader } from "./AdminUI";
 import { normalizeCondition, PRODUCT_CONDITIONS } from "../components/product/conditionUtils";
 import { sizes as shoeSizes } from "../data/products";
-import { stripProductIdentifiers, compressProductImage } from "./adminPageUtils";
+import { stripProductIdentifiers } from "./adminPageUtils";
 import { CatalogForm } from "./CatalogFormPages";
 
 function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { products, categories, brands, updateProducts, notify } = useAdmin();
+  const { products, categories, brands, saveProduct, notify } = useAdmin();
   const item = id
     ? products.find((entry) => String(entry.id) === decodeURIComponent(id))
     : null;
@@ -50,7 +50,7 @@ function ProductForm() {
   const [imageEntries, setImageEntries] = useState(() =>
     (item?.images || (item?.thumbnail ? [item.thumbnail] : []))
       .slice(0, 4)
-      .map((value) => ({ preview: value, value })),
+      .map((value) => ({ preview: value, value, file: null })),
   );
   const [error, setError] = useState("");
   const fileInput = useRef(null);
@@ -77,7 +77,7 @@ function ProductForm() {
           : extension === "webp"
             ? "image/webp"
             : "";
-    if (!validTypes.includes(file.type) && !inferredType) {
+    if (!validTypes.includes(file.type || inferredType)) {
       notify("Choose a JPG, JPEG, PNG, or WEBP image.", "error");
       return null;
     }
@@ -88,8 +88,7 @@ function ProductForm() {
     const preview = URL.createObjectURL(file);
     objectUrls.current.add(preview);
     try {
-      const value = await compressProductImage(file);
-      return { preview, value };
+      return { preview, value: preview, file };
     } catch (imageError) {
       URL.revokeObjectURL(preview);
       objectUrls.current.delete(preview);
@@ -195,7 +194,7 @@ function ProductForm() {
     0,
   );
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     setShowSizeErrors(true);
     const name = String(form.name || "").trim();
@@ -232,11 +231,10 @@ function ProductForm() {
       return;
     }
     const existing = item ? stripProductIdentifiers(item) : {};
-    const images = imageEntries.map((image) => image.value);
+    const images = imageEntries.filter((image) => !image.file).map((image) => image.value);
     const data = {
       ...existing,
       ...form,
-      id: item?.id || makeId("product"),
       name,
       condition: normalizeCondition(form.condition),
       price,
@@ -253,7 +251,7 @@ function ProductForm() {
         }))
         .sort((a, b) => a.size - b.size),
       images,
-      thumbnail: images[0],
+      thumbnail: images[0] || "",
       colors: Array.isArray(form.colors)
         ? form.colors
         : String(form.colors || "")
@@ -272,11 +270,7 @@ function ProductForm() {
     delete data.slug;
     delete data.sku;
     try {
-      updateProducts(
-        item
-          ? products.map((product) => (product.id === item.id ? data : product))
-          : [data, ...products],
-      );
+      await saveProduct(data, imageEntries.filter((image) => image.file).map((image) => image.file), item?.id);
       notify(
         item
           ? "Product updated successfully."
@@ -775,5 +769,8 @@ function ProductForm() {
 
 export function ProductFormPage() {
   const { id } = useParams();
+  const { loading, error } = useAdmin();
+  if (loading) return <PageHeader eyebrow="PRODUCTS" title="Loading catalog…" />;
+  if (error) return <PageHeader eyebrow="PRODUCTS" title={`Catalog unavailable: ${error}`} />;
   return <ProductForm key={id || "new-product"} />;
 }
