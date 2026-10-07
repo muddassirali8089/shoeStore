@@ -96,6 +96,11 @@ test("product schema derives stock from unique arbitrary shoe sizes", async () =
   assert.equal("slug" in product.toObject(), false);
 });
 
+test("product stock virtual tolerates documents that omit the sizes projection", () => {
+  const totalStock = Product.schema.virtuals.totalStock.getters[0];
+  assert.equal(totalStock.call({ sizes: undefined }), 0);
+});
+
 test("order schema permits COD and only the specified statuses", async () => {
   const order = new Order({
     orderNumber: "ORD-20261002-ABC123",

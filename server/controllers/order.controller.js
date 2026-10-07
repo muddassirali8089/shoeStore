@@ -46,6 +46,13 @@ function normalizePhone(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+export function orderIdentifierFilter(identifier) {
+  const value = String(identifier || "").trim();
+  return mongoose.isValidObjectId(value)
+    ? { _id: value }
+    : { orderNumber: value.toUpperCase() };
+}
+
 async function restoreReservedStock(reservations) {
   const restored = [];
   try {
@@ -271,8 +278,7 @@ export async function listOrders(req, res) {
 
 export async function getAdminOrder(req, res) {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) throw fail(400, "Invalid order ID.");
-    const order = await Order.findById(req.params.id).populate("items.product", "name images brand category");
+    const order = await Order.findOne(orderIdentifierFilter(req.params.id)).populate("items.product", "name images brand category");
     if (!order) throw fail(404, "Order not found.");
     return res.json({ success: true, data: order });
   } catch (error) {

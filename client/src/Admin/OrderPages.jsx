@@ -237,33 +237,45 @@ export function OrdersPage() {
 
 export function OrderDetailPage() {
   const { id } = useParams();
+  const routeIdentifier = decodeURIComponent(id || "");
   const { orders, products, updateOrders, fetchOrder, notify, loading } = useAdmin();
   const listOrder = orders.find(
-    (item) => String(item.id) === decodeURIComponent(id),
+    (item) => String(item.id) === routeIdentifier,
   );
   const [detailOrder, setOrder] = useState(null);
   const [detailError, setDetailError] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(true);
   useEffect(() => {
     let active = true;
     async function load() {
-      if (!listOrder?._id) return;
+      const identifier = listOrder?._id || routeIdentifier;
+      if (!identifier) return;
+      setDetailLoading(true);
+      setDetailError(null);
       try {
-        const loaded = await fetchOrder(listOrder._id);
+        const loaded = await fetchOrder(identifier);
         if (active) setOrder(loaded);
       } catch (error) {
-        if (active) setDetailError({ id: listOrder._id, message: error.message });
+        if (active) setDetailError({ id: routeIdentifier, message: error.message });
+      } finally {
+        if (active) setDetailLoading(false);
       }
     }
     load();
     return () => { active = false; };
-  }, [fetchOrder, listOrder?._id]);
+  }, [fetchOrder, listOrder?._id, routeIdentifier]);
   const [statusConfirm, setStatusConfirm] = useState(null);
-  const order = detailOrder?._id === listOrder?._id ? detailOrder : listOrder;
-  if (!order && loading)
+  const detailMatchesRoute = detailOrder && (
+    String(detailOrder.id) === routeIdentifier ||
+    String(detailOrder._id) === routeIdentifier ||
+    (listOrder?._id && String(detailOrder._id) === String(listOrder._id))
+  );
+  const order = detailMatchesRoute ? detailOrder : listOrder;
+  if (!order && (loading || detailLoading))
     return <PageHeader eyebrow="COMMERCE" title="Loading order…" />;
   if (!order)
-    return <NotFoundPanel title="Order not found" back="/admin/orders/list" />;
-  if (detailError?.id === listOrder?._id)
+    return <NotFoundPanel title={detailError?.id === routeIdentifier ? detailError.message : "Order not found"} back="/admin/orders/list" />;
+  if (detailError?.id === routeIdentifier)
     return <NotFoundPanel title={detailError.message} back="/admin/orders/list" />;
   const subtotal = orderSubtotal(order);
   const discount = Number(order.discount) || 0;

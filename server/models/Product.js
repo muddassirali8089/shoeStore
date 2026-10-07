@@ -33,7 +33,7 @@ const productSchema = new mongoose.Schema({
 
 productSchema.index({ name: "text", condition: 1, price: 1 });
 productSchema.virtual("totalStock").get(function totalStock() {
-  return this.sizes.reduce((total, size) => total + size.quantity, 0);
+  return (this.sizes || []).reduce((total, size) => total + size.quantity, 0);
 });
 productSchema.virtual("stock").get(function stock() {
   return this.totalStock;
