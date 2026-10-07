@@ -51,12 +51,12 @@ CLIENT_ORIGIN=http://localhost:3000
 CLOUDINARY_CLOUD_NAME=your-cloud
 CLOUDINARY_API_KEY=your-key
 CLOUDINARY_API_SECRET=your-secret
-EMAIL_HOST=smtp.example.com
-EMAIL_PORT=465
-EMAIL_USER=mail@example.com
-EMAIL_PASSWORD=your-password
-EMAIL_FROM=mail@example.com
+EMAIL_USER=your-address@gmail.com
+EMAIL_PASSWORD=your-google-app-password
+EMAIL_FROM=your-address@gmail.com
 ```
+
+For Gmail accounts, the API uses Gmail SMTP (`smtp.gmail.com` on port `465`) automatically when `EMAIL_HOST` and `EMAIL_PORT` are omitted. Use a Google App Password for `EMAIL_PASSWORD` (not your regular account password). Other mail providers require their SMTP host and port to be set explicitly.
 
 ## Authentication
 

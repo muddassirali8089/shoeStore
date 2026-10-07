@@ -1,16 +1,32 @@
 import nodemailer from "nodemailer";
 
-function createTransport() {
-  const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD } = process.env;
-  if (!EMAIL_HOST || !EMAIL_PORT || !EMAIL_USER || !EMAIL_PASSWORD) {
-    throw new Error("Email delivery is not configured.");
+export function getEmailTransportOptions(env = process.env) {
+  const emailUser = env.EMAIL_USER?.trim();
+  const emailPassword = env.EMAIL_PASSWORD;
+  const emailDomain = emailUser?.toLowerCase().split("@").pop();
+  const isGmail = emailDomain === "gmail.com" || emailDomain === "googlemail.com";
+  const host = env.EMAIL_HOST?.trim() || (isGmail ? "smtp.gmail.com" : "");
+  const configuredPort = env.EMAIL_PORT?.trim();
+  const port = Number(configuredPort || (isGmail ? 465 : ""));
+
+  if (!host || !Number.isInteger(port) || port < 1 || port > 65535 || !emailUser || !emailPassword) {
+    throw new Error(
+      isGmail
+        ? "Email delivery requires EMAIL_USER and EMAIL_PASSWORD."
+        : "Email delivery requires EMAIL_HOST, EMAIL_PORT, EMAIL_USER, and EMAIL_PASSWORD.",
+    );
   }
-  return nodemailer.createTransport({
-    host: EMAIL_HOST,
-    port: Number(EMAIL_PORT),
-    secure: Number(EMAIL_PORT) === 465,
-    auth: { user: EMAIL_USER, pass: EMAIL_PASSWORD },
-  });
+
+  return {
+    host,
+    port,
+    secure: port === 465,
+    auth: { user: emailUser, pass: emailPassword },
+  };
+}
+
+function createTransport() {
+  return nodemailer.createTransport(getEmailTransportOptions());
 }
 
 export async function sendPasswordResetCode(email, code, expiryMinutes) {
