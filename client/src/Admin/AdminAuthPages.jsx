@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { useAdminAuth } from "./context/AdminAuthContext";
+import InlineSpinner from "../components/common/InlineSpinner";
 
 const styles = `
 .admin-recovery { align-items: center; background: #f5f7f4; color: #18221e; display: flex; font-family: "DM Sans", "Segoe UI", sans-serif; justify-content: center; min-height: 100vh; padding: 28px 18px; }
@@ -52,20 +53,24 @@ export function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   async function submit(event) {
     event.preventDefault();
     setError("");
     try {
+      setSubmitting(true);
       await beginRecovery(email);
       navigate("/admin/verify-code", { state: { notice: "If an admin account exists for that email, a verification code has been sent." } });
     } catch (recoveryError) {
       clearRecovery();
       setError(recoveryError.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  return <RecoveryFrame><div className="admin-recovery-icon"><Mail size={20} /></div><h1>Forgot Password?</h1><p className="admin-recovery-description">Enter your admin email address and we’ll send a 6-digit verification code if the account is eligible.</p><Message>{error}</Message><form className="admin-recovery-form" onSubmit={submit}><label className="admin-recovery-field">Email<input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><button className="admin-recovery-button" type="submit">Send Verification Code</button></form><div className="admin-recovery-footnote">A verified code is required to reset the administrator password.</div><Link className="admin-recovery-back" to="/admin/login"><ArrowLeft size={14} /> Back to sign in</Link></RecoveryFrame>;
+  return <RecoveryFrame><div className="admin-recovery-icon"><Mail size={20} /></div><h1>Forgot Password?</h1><p className="admin-recovery-description">Enter your admin email address and we’ll send a 6-digit verification code if the account is eligible.</p><Message>{error}</Message><form className="admin-recovery-form" onSubmit={submit}><label className="admin-recovery-field">Email<input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required disabled={submitting} /></label><button className="admin-recovery-button" type="submit" disabled={submitting} aria-busy={submitting}>{submitting && <InlineSpinner label="Sending code" />}Send Verification Code</button></form><div className="admin-recovery-footnote">A verified code is required to reset the administrator password.</div><Link className="admin-recovery-back" to="/admin/login"><ArrowLeft size={14} /> Back to sign in</Link></RecoveryFrame>;
 }
 
 function useRemainingTime(expiresAt) {
@@ -88,6 +93,8 @@ export function VerifyCodePage() {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [status, setStatus] = useState(location.state?.notice || "");
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
   const inputs = useRef([]);
   const remaining = useRemainingTime(challenge?.expiresAt || 0);
   const code = digits.join("");
@@ -130,15 +137,19 @@ export function VerifyCodePage() {
   async function submit(event) {
     event.preventDefault();
     try {
+      setVerifying(true);
       await verifyCode(code);
       navigate("/admin/reset-password");
     } catch (verifyError) {
       setError(verifyError.message);
+    } finally {
+      setVerifying(false);
     }
   }
 
   async function resend() {
     try {
+      setResending(true);
       await resendCode();
       setDigits(["", "", "", "", "", ""]);
       setError("");
@@ -146,6 +157,8 @@ export function VerifyCodePage() {
       inputs.current[0]?.focus();
     } catch (resendError) {
       setError(resendError.message);
+    } finally {
+      setResending(false);
     }
   }
 
@@ -171,6 +184,7 @@ export function VerifyCodePage() {
               pattern="[0-9]*"
               maxLength={1}
               value={digit}
+              disabled={verifying || resending}
               onChange={(event) => updateDigits(event.target.value, index)}
               onKeyDown={(event) => onKeyDown(event, index)}
               onPaste={(event) => {
@@ -183,9 +197,9 @@ export function VerifyCodePage() {
         <p className="admin-recovery-countdown">
           {remaining === null ? "Checking code expiry…" : remaining ? `Code expires in ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}.` : "This code has expired."}
         </p>
-        <button className="admin-recovery-button" type="submit" disabled={code.length !== 6 || remaining === null || !isVerificationCodeValid()}>Verify Code</button>
+        <button className="admin-recovery-button" type="submit" disabled={verifying || resending || code.length !== 6 || remaining === null || !isVerificationCodeValid()} aria-busy={verifying}>{verifying && <InlineSpinner label="Verifying code" />}Verify Code</button>
       </form>
-      <button className="admin-recovery-resend" type="button" onClick={resend}>Resend Code</button>
+      <button className="admin-recovery-resend" type="button" onClick={resend} disabled={verifying || resending} aria-busy={resending}>{resending && <InlineSpinner label="Resending code" />} Resend Code</button>
       <Link className="admin-recovery-back" to="/admin/forgot-password"><ArrowLeft size={14} /> Use a different email</Link>
     </RecoveryFrame>
   );
@@ -204,6 +218,7 @@ export function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const remaining = useRemainingTime(challenge?.expiresAt || 0);
   const remainingMinutes = remaining === null ? null : Math.ceil(remaining / 60);
   const verified = isPasswordResetAllowed() && remaining > 0;
@@ -215,6 +230,7 @@ export function ResetPasswordPage() {
     if (!confirmPassword) { setError("Please confirm your new password."); return; }
     if (password !== confirmPassword) { setError("The passwords do not match."); return; }
     try {
+      setSubmitting(true);
       await resetPassword(password);
       navigate("/admin/login", {
         replace: true,
@@ -222,10 +238,12 @@ export function ResetPasswordPage() {
       });
     } catch (resetError) {
       setError(resetError.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
   if (!verified) return <RecoveryFrame><div className="admin-recovery-icon"><KeyRound size={20} /></div><h1>Verify your code first</h1><p className="admin-recovery-description">A valid, verified recovery code is required before you can reset the admin password.</p><Link className="admin-recovery-button" to={challenge ? "/admin/verify-code" : "/admin/forgot-password"}>{challenge ? "Continue verification" : "Start recovery"}</Link></RecoveryFrame>;
 
-  return <RecoveryFrame><div className="admin-recovery-icon"><ShieldCheck size={20} /></div><h1>Reset Password</h1><p className="admin-recovery-description">Choose a new password for the admin account. Your verified code is valid for another {remainingMinutes ?? "…"} minute{remainingMinutes === 1 ? "" : "s"}.</p><Message>{error}</Message><form className="admin-recovery-form" onSubmit={submit}><PasswordInput label="New Password" value={password} onChange={(event) => setPassword(event.target.value)} visible={showPassword} onToggle={() => setShowPassword((value) => !value)} autoComplete="new-password" /><PasswordInput label="Confirm Password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} visible={showConfirmation} onToggle={() => setShowConfirmation((value) => !value)} autoComplete="new-password" /><button className="admin-recovery-button" type="submit">Update Password</button></form><Link className="admin-recovery-back" to="/admin/verify-code"><ArrowLeft size={14} /> Back to code verification</Link></RecoveryFrame>;
+  return <RecoveryFrame><div className="admin-recovery-icon"><ShieldCheck size={20} /></div><h1>Reset Password</h1><p className="admin-recovery-description">Choose a new password for the admin account. Your verified code is valid for another {remainingMinutes ?? "…"} minute{remainingMinutes === 1 ? "" : "s"}.</p><Message>{error}</Message><form className="admin-recovery-form" onSubmit={submit}><PasswordInput label="New Password" value={password} onChange={(event) => setPassword(event.target.value)} visible={showPassword} onToggle={() => setShowPassword((value) => !value)} autoComplete="new-password" /><PasswordInput label="Confirm Password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} visible={showConfirmation} onToggle={() => setShowConfirmation((value) => !value)} autoComplete="new-password" /><button className="admin-recovery-button" type="submit" disabled={submitting} aria-busy={submitting}>{submitting && <InlineSpinner label="Updating password" />}Update Password</button></form><Link className="admin-recovery-back" to="/admin/verify-code"><ArrowLeft size={14} /> Back to code verification</Link></RecoveryFrame>;
 }

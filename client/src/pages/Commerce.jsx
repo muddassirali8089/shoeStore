@@ -5,6 +5,7 @@ import { useProducts } from '../context/ProductContext'
 import { useUI } from '../context/UIContext'
 import { useWishlist } from '../context/WishlistContext'
 import { useOrders } from '../context/OrderContext'
+import InlineSpinner from '../components/common/InlineSpinner'
 
 const money = (amount) => `Rs. ${amount.toLocaleString('en-PK')}`
 
@@ -15,7 +16,7 @@ function CartItem({ item, product, cart }) {
 }
 
 function Summary({ cart, checkout = false, placing = false }) {
-  return <aside className="order-summary"><span className="eyebrow">THE TOTALS</span><h2>Order summary</h2><div className="summary-row"><span>Subtotal</span><span>{money(cart.subtotal)}</span></div><div className="summary-row"><span>Delivery</span><span>{cart.shipping === 0 ? 'Complimentary' : money(cart.shipping)}</span></div>{cart.discount > 0 && <div className="summary-row discount-row"><span>Discount</span><span>−{money(cart.discount)}</span></div>}  <div className="summary-total"><span>Total</span><strong>{money(cart.total)}</strong></div><small>Final prices and delivery are confirmed by the store.</small>{checkout ? <button type="submit" form="checkout-form" disabled={placing} className="button button-dark full-button">{placing ? 'Placing order…' : 'Place my order'} <ArrowRight size={16} /></button> : <Link className="button button-dark full-button" to="/checkout">Continue to checkout <ArrowRight size={16} /></Link>}<div className="secure-note"><ShieldCheck size={16} /> Safe, secure checkout</div></aside>
+  return <aside className="order-summary"><span className="eyebrow">THE TOTALS</span><h2>Order summary</h2><div className="summary-row"><span>Subtotal</span><span>{money(cart.subtotal)}</span></div><div className="summary-row"><span>Delivery</span><span>{cart.shipping === 0 ? 'Complimentary' : money(cart.shipping)}</span></div>{cart.discount > 0 && <div className="summary-row discount-row"><span>Discount</span><span>−{money(cart.discount)}</span></div>}  <div className="summary-total"><span>Total</span><strong>{money(cart.total)}</strong></div><small>Final prices and delivery are confirmed by the store.</small>{checkout ? <button type="submit" form="checkout-form" disabled={placing} aria-busy={placing} className="button button-dark full-button">{placing ? <InlineSpinner label="Placing order" /> : <ArrowRight size={16} />}{placing ? 'Placing order…' : 'Place my order'}</button> : <Link className="button button-dark full-button" to="/checkout">Continue to checkout <ArrowRight size={16} /></Link>}<div className="secure-note"><ShieldCheck size={16} /> Safe, secure checkout</div></aside>
 }
 
 export function CartPage() {

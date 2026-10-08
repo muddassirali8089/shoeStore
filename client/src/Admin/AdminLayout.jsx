@@ -7,6 +7,7 @@ import {
 import { useAdmin } from "./AdminContext";
 import { useAdminAuth } from "./context/AdminAuthContext";
 import { Field, ToastViewport } from "./AdminUI";
+import InlineSpinner from "../components/common/InlineSpinner";
 import "./admin.css";
 
 const navigation = [
@@ -39,6 +40,7 @@ export function AdminLogin() {
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   useEffect(() => {
     if (location.state?.notice) {
       notify(location.state.notice);
@@ -49,14 +51,17 @@ export function AdminLogin() {
     event.preventDefault();
     if (!email.trim() || !password) { setError("Enter your email and password to continue."); return; }
     try {
+      setSubmitting(true);
       await loginAdmin(email, password);
       notify("Welcome back. You’re signed in to the admin workspace.");
       navigate(location.state?.from?.pathname || "/admin/dashboard", { replace: true });
     } catch (loginError) {
       setError(loginError.message);
+    } finally {
+      setSubmitting(false);
     }
   }
-  return <main className="admin-login-shell"><section className="admin-login-art"><div className="admin-login-brand"><span className="admin-logo-mark"><ShoppingBag size={18} /></span>morrow<span>goods</span></div><div className="admin-login-art-copy"><div className="admin-eyebrow">THE MORROW WORKSPACE</div><h1>Good things<br />start behind<br />the scenes.</h1><p>One calm, clear place to run your store.</p></div><div className="admin-login-art-footer"><span>MG / ADMINISTRATION</span><span>01 — 09</span></div></section><section className="admin-login-panel"><form onSubmit={submit} className="admin-login-form"><div className="admin-eyebrow">WELCOME BACK</div><h2>Sign in to your workspace</h2><p className="admin-login-subtitle">Enter your admin credentials to continue.</p>{error && <div className="admin-form-error" role="alert">{error}</div>}<Field label="Email address" type="email" autoComplete="username" value={email} onChange={(event) => { setEmail(event.target.value); setError(""); }} required /><Field label="Password" type="password" autoComplete="current-password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} required /><Link className="admin-login-forgot" to="/admin/forgot-password">Forgot Password?</Link><button className="admin-button admin-button-primary admin-login-submit" type="submit">Sign in <span>→</span></button>  <div className="admin-login-credentials"><ShieldCheck size={16} /><span>Sign in with the administrator account configured on the backend.</span></div></form><footer>© 2026 Morrow Goods <span>·</span> Private admin workspace</footer><ToastViewport toast={toast} /></section></main>;
+  return <main className="admin-login-shell"><section className="admin-login-art"><div className="admin-login-brand"><span className="admin-logo-mark"><ShoppingBag size={18} /></span>morrow<span>goods</span></div><div className="admin-login-art-copy"><div className="admin-eyebrow">THE MORROW WORKSPACE</div><h1>Good things<br />start behind<br />the scenes.</h1><p>One calm, clear place to run your store.</p></div><div className="admin-login-art-footer"><span>MG / ADMINISTRATION</span><span>01 — 09</span></div></section><section className="admin-login-panel"><form onSubmit={submit} className="admin-login-form"><div className="admin-eyebrow">WELCOME BACK</div><h2>Sign in to your workspace</h2><p className="admin-login-subtitle">Enter your admin credentials to continue.</p>{error && <div className="admin-form-error" role="alert">{error}</div>}<Field label="Email address" type="email" autoComplete="username" value={email} onChange={(event) => { setEmail(event.target.value); setError(""); }} required /><Field label="Password" type="password" autoComplete="current-password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} required /><Link className="admin-login-forgot" to="/admin/forgot-password">Forgot Password?</Link><button className="admin-button admin-button-primary admin-login-submit" type="submit" disabled={submitting} aria-busy={submitting}>{submitting && <InlineSpinner label="Signing in" />}Sign in {!submitting && <span>→</span>}</button>  <div className="admin-login-credentials"><ShieldCheck size={16} /><span>Sign in with the administrator account configured on the backend.</span></div></form><footer>© 2026 Morrow Goods <span>·</span> Private admin workspace</footer><ToastViewport toast={toast} /></section></main>;
 }
 
 export function AdminLayout() {

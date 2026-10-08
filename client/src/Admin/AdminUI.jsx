@@ -2,13 +2,14 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { money } from "./AdminContext";
+import InlineSpinner from "../components/common/InlineSpinner";
 
 export function PageHeader({ eyebrow, title, description, actions }) {
   return <div className="admin-page-header"><div><div className="admin-eyebrow">{eyebrow}</div><h1>{title}</h1>{description && <p>{description}</p>}</div>{actions && <div className="admin-header-actions">{actions}</div>}</div>;
 }
 
-export function Button({ children, variant = "primary", icon: Icon, type = "button", ...props }) {
-  return <button className={`admin-button admin-button-${variant}`} type={type} {...props}>{Icon && <Icon size={16} strokeWidth={2} />}{children}</button>;
+export function Button({ children, variant = "primary", icon: Icon, type = "button", loading = false, disabled = false, ...props }) {
+  return <button className={`admin-button admin-button-${variant}`} type={type} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>{loading ? <InlineSpinner label="Saving" /> : Icon && <Icon size={16} strokeWidth={2} />}{children}</button>;
 }
 
 export function StatusBadge({ children }) {
@@ -55,7 +56,16 @@ export function Modal({ title, description, children, onClose, size = "normal" }
 }
 
 export function ConfirmModal({ title, description, onConfirm, onCancel, confirmLabel = "Delete", danger = true }) {
-  return <Modal title={title} description={description} onClose={onCancel}><div className="admin-confirm-icon"><AlertTriangle size={20} /></div><div className="admin-modal-footer"><Button variant="subtle" onClick={onCancel}>Keep it</Button><Button variant={danger ? "danger" : "primary"} onClick={onConfirm}>{confirmLabel}</Button></div></Modal>;
+  const [loading, setLoading] = useState(false);
+  async function confirm() {
+    setLoading(true);
+    try {
+      await onConfirm();
+    } finally {
+      setLoading(false);
+    }
+  }
+  return <Modal title={title} description={description} onClose={() => { if (!loading) onCancel(); }}><div className="admin-confirm-icon"><AlertTriangle size={20} /></div><div className="admin-modal-footer"><Button variant="subtle" onClick={onCancel} disabled={loading}>Keep it</Button><Button variant={danger ? "danger" : "primary"} onClick={confirm} loading={loading}>{confirmLabel}</Button></div></Modal>;
 }
 
 export function ToastViewport({ toast }) {

@@ -245,6 +245,9 @@ export function OrderDetailPage() {
   const [detailOrder, setOrder] = useState(null);
   const [detailError, setDetailError] = useState(null);
   const [detailLoading, setDetailLoading] = useState(true);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [statusOverride, setStatusOverride] = useState(null);
   useEffect(() => {
     let active = true;
     async function load() {
@@ -270,7 +273,10 @@ export function OrderDetailPage() {
     String(detailOrder._id) === routeIdentifier ||
     (listOrder?._id && String(detailOrder._id) === String(listOrder._id))
   );
-  const order = detailMatchesRoute ? detailOrder : listOrder;
+  const baseOrder = detailMatchesRoute ? detailOrder : listOrder;
+  const order = statusOverride?.id === routeIdentifier
+    ? { ...baseOrder, status: statusOverride.status, orderStatus: statusOverride.status }
+    : baseOrder;
   if (!order && (loading || detailLoading))
     return <PageHeader eyebrow="COMMERCE" title="Loading order…" />;
   if (!order)
@@ -283,30 +289,45 @@ export function OrderDetailPage() {
     Number(order.shipping) ||
     Math.max(0, Number(order.total) - subtotal + discount);
   async function updateStatus(status) {
-    if (!statusTransitions[order.status]?.includes(status)) return;
+    if (!statusTransitions[order.status]?.includes(status)) return false;
+    const previousOrder = order;
+    const updatedOrder = { ...order, status, orderStatus: status };
+    setStatusOverride({ id: routeIdentifier, status });
+    setOrder(updatedOrder);
+    setStatusSaving(true);
     try {
       await updateOrders(
         orders.map((item) =>
           item.id === order.id ? { ...item, status } : item,
         ),
       );
-      setOrder(await fetchOrder(order._id));
       notify(`${order.id} is now ${statusLabel(status).toLowerCase()}.`);
+      return true;
     } catch (error) {
+      setOrder(previousOrder);
+      setStatusOverride(null);
       notify(error.message, "error");
+      return false;
+    } finally {
+      setStatusSaving(false);
     }
   }
   async function updatePaymentStatus(status) {
+    const previousOrder = order;
+    setOrder({ ...order, paymentStatus: status });
+    setPaymentSaving(true);
     try {
       await updateOrders(
         orders.map((item) =>
           item.id === order.id ? { ...item, paymentStatus: status } : item,
         ),
       );
-      setOrder(await fetchOrder(order._id));
       notify(`${order.id} payment marked ${status}.`);
     } catch (error) {
+      setOrder(previousOrder);
       notify(error.message, "error");
+    } finally {
+      setPaymentSaving(false);
     }
   }
   const nextDeliveryStatus = {
@@ -332,7 +353,7 @@ export function OrderDetailPage() {
               Print order
             </Button>
             {nextDeliveryStatus && (
-              <Button icon={Truck} onClick={() => updateStatus(nextDeliveryStatus)}>
+              <Button icon={Truck} loading={statusSaving} disabled={detailLoading} onClick={() => updateStatus(nextDeliveryStatus)}>
                 Mark as {statusLabel(nextDeliveryStatus).toLowerCase()}
               </Button>
             )}
@@ -529,6 +550,7 @@ export function OrderDetailPage() {
               onClick={() =>
                 updatePaymentStatus(order.paymentStatus === "received" ? "pending" : "received")
               }
+              loading={paymentSaving}
             >
               Mark payment {order.paymentStatus === "received" ? "pending" : "received"}
             </Button>
@@ -557,9 +579,8 @@ export function OrderDetailPage() {
           description={`${order.id} will be marked ${statusConfirm.status}. This action can’t be undone.`}
           confirmLabel={`Mark ${statusConfirm.status}`}
           onCancel={() => setStatusConfirm(null)}
-          onConfirm={() => {
-            updateStatus(statusConfirm.status);
-            setStatusConfirm(null);
+          onConfirm={async () => {
+            if (await updateStatus(statusConfirm.status)) setStatusConfirm(null);
           }}
         />
       )}

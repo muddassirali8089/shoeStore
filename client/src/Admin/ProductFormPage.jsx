@@ -53,6 +53,7 @@ function ProductForm() {
       .map((value) => ({ preview: value, value, file: null })),
   );
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const fileInput = useRef(null);
   const objectUrls = useRef(new Set());
   const set = (key, value) =>
@@ -270,6 +271,7 @@ function ProductForm() {
     delete data.slug;
     delete data.sku;
     try {
+      setSaving(true);
       await saveProduct(data, imageEntries.filter((image) => image.file).map((image) => image.file), item?.id);
       notify(
         item
@@ -279,6 +281,8 @@ function ProductForm() {
       navigate("/admin/products/list");
     } catch (saveError) {
       setError(saveError.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -744,7 +748,7 @@ function ProductForm() {
           >
             Cancel
           </Button>
-          <Button icon={Save} type="submit">
+          <Button icon={Save} type="submit" loading={saving}>
             {item ? "Save changes" : "Create product"}
           </Button>
         </div>

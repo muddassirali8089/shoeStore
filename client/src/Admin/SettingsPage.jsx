@@ -9,6 +9,7 @@ export function SettingsPage() {
   const form = formState || settings;
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   async function submit(event) {
     event.preventDefault();
     if (
@@ -24,6 +25,7 @@ export function SettingsPage() {
       return;
     }
     try {
+      setSaving(true);
       const next = {
         ...form,
         taxRate: Number(form.taxRate),
@@ -40,6 +42,8 @@ export function SettingsPage() {
       window.setTimeout(() => setSaved(false), 2600);
     } catch (saveError) {
       setError(saveError.message);
+    } finally {
+      setSaving(false);
     }
   }
   const set = (key, value) =>
@@ -67,6 +71,7 @@ export function SettingsPage() {
         actions={
           <Button
             icon={saved ? Check : Save}
+            loading={saving}
             onClick={() =>
               document.getElementById("admin-settings-form")?.requestSubmit()
             }

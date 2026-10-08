@@ -16,6 +16,7 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
     : null;
   const [form, setForm] = useState(() => item || {});
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const setters = { categories: updateCategories, brands: updateBrands };
   const labels = {
     categories: ["category", "Categories"],
@@ -54,6 +55,7 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
     try {
+      setSaving(true);
       await setters[kind](
         item
           ? records.map((record) => (record.id === item.id ? data : record))
@@ -66,6 +68,8 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
       else navigate(`/admin/${kind}/list`);
     } catch (saveError) {
       setError(saveError.message);
+    } finally {
+      setSaving(false);
     }
   }
   if (id && !item)
@@ -164,10 +168,10 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
             </p>
           )}
           <div className="admin-modal-footer">
-            <Button variant="subtle" onClick={onCancel}>
+            <Button variant="subtle" onClick={onCancel} disabled={saving}>
               Cancel
             </Button>
-            <Button icon={Save} type="submit">
+            <Button icon={Save} type="submit" loading={saving}>
               Create {singular}
             </Button>
           </div>
@@ -183,6 +187,7 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
         actions={
           <Button
             variant="subtle"
+            disabled={saving}
             onClick={() => navigate(`/admin/${kind}/list`)}
           >
             <ChevronLeft size={16} /> Back to {plural.toLowerCase()}
@@ -211,7 +216,7 @@ export function CatalogForm({ kind, embedded = false, onCancel, onCreated }) {
             >
               Cancel
             </Button>
-            <Button icon={Save} type="submit">
+            <Button icon={Save} type="submit" loading={saving}>
               {item ? "Save changes" : `Create ${singular}`}
             </Button>
           </div>
