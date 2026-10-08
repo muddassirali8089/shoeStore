@@ -391,6 +391,7 @@ GET /api/v1/orders/admin/list
 GET /api/v1/orders/admin/:id
 PATCH /api/v1/orders/admin/:id/status
 PATCH /api/v1/orders/admin/:id/payment-status
+DELETE /api/v1/orders/admin/:id
 PATCH /api/v1/orders/admin/:id/cancel
 PATCH /api/v1/orders/admin/:id/return
 ```
@@ -417,6 +418,7 @@ GET /api/v1/admin/products
 GET /api/v1/admin/products/:id
 GET /api/v1/admin/orders
 GET /api/v1/admin/orders/:id
+DELETE /api/v1/admin/orders/:id
 GET /api/v1/admin/customers
 GET /api/v1/admin/customers/:identifier
 GET /api/v1/admin/brands
@@ -434,5 +436,7 @@ These routes require admin auth.
 - Admin routes require a valid bearer token.
 - Product uploads require Cloudinary configuration.
 - Orders are created for cash-on-delivery only.
+- Cancelled or returned orders cannot be marked as paid and are excluded from payment and customer sales totals.
+- Deleting an active order restores its reserved stock before removing the order.
 
 This README is intentionally short and focused on server-side API usage and payload structure.

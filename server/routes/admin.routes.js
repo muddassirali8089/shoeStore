@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getAdminBrands, getAdminCategories, getCustomer, getDashboard, getInventory, getSettings, listCustomers, updateSettings } from "../controllers/admin.controller.js";
 import { getProduct, getProducts } from "../controllers/catalog.controller.js";
-import { getAdminOrder, listOrders, setOrderStatus, setPaymentStatus } from "../controllers/order.controller.js";
+import { deleteOrder, getAdminOrder, listOrders, setOrderStatus, setPaymentStatus } from "../controllers/order.controller.js";
 import { requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
@@ -16,6 +16,7 @@ router.get("/orders", listOrders);
 router.get("/orders/:id", getAdminOrder);
 router.patch("/orders/:id/status", setOrderStatus);
 router.patch("/orders/:id/payment-status", setPaymentStatus);
+router.delete("/orders/:id", deleteOrder);
 router.get("/customers", listCustomers);
 router.get("/customers/:identifier", getCustomer);
 router.get("/brands", getAdminBrands);

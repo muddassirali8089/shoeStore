@@ -37,6 +37,7 @@ const orderSchema = new mongoose.Schema({
   orderStatus: { type: String, enum: ORDER_STATUSES, default: "pending", index: true },
   orderNotes: { type: String, default: "", trim: true },
   inventoryRestored: { type: Boolean, default: false },
+  deletionPending: { type: Boolean, default: false },
 }, { timestamps: true });
 
 orderSchema.index({ createdAt: -1 });

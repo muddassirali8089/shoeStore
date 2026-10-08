@@ -45,6 +45,15 @@ test("admin routes reject requests without a bearer token", async () => {
     success: false,
     message: "Admin authentication is required.",
   });
+
+  const deleteResponse = await fetch(`${baseUrl}/api/v1/admin/orders/507f1f77bcf86cd799439011`, {
+    method: "DELETE",
+  });
+  assert.equal(deleteResponse.status, 401);
+  assert.deepEqual(await deleteResponse.json(), {
+    success: false,
+    message: "Admin authentication is required.",
+  });
 });
 
 test("product writes reject unauthenticated requests before parsing uploads", async () => {

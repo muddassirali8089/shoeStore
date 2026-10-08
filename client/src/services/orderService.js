@@ -17,6 +17,7 @@ export const orderService = {
     return all
   },
   get: (id) => requestData(apiClient.get(`/admin/orders/${encodeURIComponent(id)}`)),
+  remove: (id) => requestData(apiClient.delete(`/admin/orders/${encodeURIComponent(id)}`)),
   setStatus: (id, status) => requestData(apiClient.patch(`/admin/orders/${encodeURIComponent(id)}/status`, { status })),
   setPaymentStatus: (id, paymentStatus) => requestData(apiClient.patch(`/admin/orders/${encodeURIComponent(id)}/payment-status`, { paymentStatus })),
 }

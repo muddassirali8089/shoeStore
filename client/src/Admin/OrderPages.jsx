@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowRight, Check, CircleDollarSign, Download, Eye, Truck } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowRight, Check, CircleDollarSign, Download, Eye, Trash2, Truck } from "lucide-react";
 import { money, orderSubtotal, useAdmin } from "./AdminContext";
 import { AdminTable, Button, ConfirmModal, Modal, PageHeader, SelectField, StatusBadge, Toolbar, moneyCell } from "./AdminUI";
 import { shortDate, dateTime, fullName, customerInitials, productImage, fallbackPhoto, exportCSV, NotFoundPanel } from "./adminPageUtils";
@@ -19,7 +19,7 @@ function statusLabel(status) {
   return status ? status[0].toUpperCase() + status.slice(1) : "Pending";
 }
 
-function OrderColumns({ onStatus }) {
+function OrderColumns({ onStatus, onDelete }) {
   return [
     {
       key: "id",
@@ -89,7 +89,7 @@ function OrderColumns({ onStatus }) {
       key: "paymentStatus",
       label: "Payment",
       render: (order) => (
-        <StatusBadge>{statusLabel(order.paymentStatus || "pending")}</StatusBadge>
+        <StatusBadge>{["cancelled", "returned"].includes(order.status) ? "Not applicable" : statusLabel(order.paymentStatus || "pending")}</StatusBadge>
       ),
     },
     {
@@ -98,24 +98,35 @@ function OrderColumns({ onStatus }) {
       sortable: false,
       align: "right",
       render: (order) => (
-        <Link
-          className="admin-icon-button"
-          aria-label={`View ${order.id}`}
-          to={`/admin/orders/${encodeURIComponent(order.id)}`}
-        >
-          <Eye size={16} />
-        </Link>
+        <div className="admin-row-actions">
+          <Link
+            className="admin-icon-button"
+            aria-label={`View ${order.id}`}
+            to={`/admin/orders/${encodeURIComponent(order.id)}`}
+          >
+            <Eye size={16} />
+          </Link>
+          <button
+            className="admin-icon-button danger-hover"
+            aria-label={`Delete ${order.id}`}
+            title={`Delete ${order.id}`}
+            onClick={() => onDelete(order)}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
       ),
     },
   ];
 }
 
 export function OrdersPage() {
-  const { orders, updateOrders, notify } = useAdmin();
+  const { orders, updateOrders, deleteOrder, notify } = useAdmin();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All statuses");
   const [editing, setEditing] = useState(null);
   const [statusConfirm, setStatusConfirm] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const rows = orders.filter(
     (order) => filter === "All statuses" || order.status === filter,
   );
@@ -153,6 +164,16 @@ export function OrdersPage() {
       notify(error.message, "error");
     }
     setStatusConfirm(null);
+  }
+  async function confirmDelete() {
+    try {
+      await deleteOrder(deleteTarget._id);
+      notify(`${deleteTarget.id} was deleted.`);
+      setDeleteTarget(null);
+    } catch (error) {
+      notify(error.message, "error");
+      throw error;
+    }
   }
   return (
     <>
@@ -195,7 +216,7 @@ export function OrdersPage() {
         </Toolbar>
         <AdminTable
           rows={rows}
-          columns={OrderColumns({ onStatus: setEditing })}
+          columns={OrderColumns({ onStatus: setEditing, onDelete: setDeleteTarget })}
           searchValue={search}
         />
       </div>
@@ -231,14 +252,24 @@ export function OrdersPage() {
           onConfirm={confirmStatusChange}
         />
       )}
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete this order?"
+          description={`${deleteTarget.id} and its order details will be permanently deleted. Any reserved stock will be restored.`}
+          confirmLabel="Delete order"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
     </>
   );
 }
 
 export function OrderDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const routeIdentifier = decodeURIComponent(id || "");
-  const { orders, products, updateOrders, fetchOrder, notify, loading } = useAdmin();
+  const { orders, products, updateOrders, deleteOrder, fetchOrder, notify, loading } = useAdmin();
   const listOrder = orders.find(
     (item) => String(item.id) === routeIdentifier,
   );
@@ -268,6 +299,7 @@ export function OrderDetailPage() {
     return () => { active = false; };
   }, [fetchOrder, listOrder?._id, routeIdentifier]);
   const [statusConfirm, setStatusConfirm] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const detailMatchesRoute = detailOrder && (
     String(detailOrder.id) === routeIdentifier ||
     String(detailOrder._id) === routeIdentifier ||
@@ -313,6 +345,7 @@ export function OrderDetailPage() {
     }
   }
   async function updatePaymentStatus(status) {
+    if (terminalStatus || paymentSaving) return;
     const previousOrder = order;
     setOrder({ ...order, paymentStatus: status });
     setPaymentSaving(true);
@@ -328,6 +361,16 @@ export function OrderDetailPage() {
       notify(error.message, "error");
     } finally {
       setPaymentSaving(false);
+    }
+  }
+  async function confirmDeleteOrder() {
+    try {
+      await deleteOrder(order._id);
+      notify(`${order.id} was deleted.`);
+      navigate("/admin/orders/list");
+    } catch (error) {
+      notify(error.message, "error");
+      throw error;
     }
   }
   const nextDeliveryStatus = {
@@ -351,6 +394,9 @@ export function OrderDetailPage() {
               icon={Download}
             >
               Print order
+            </Button>
+            <Button variant="danger" icon={Trash2} onClick={() => setDeleteConfirm(true)}>
+              Delete order
             </Button>
             {nextDeliveryStatus && (
               <Button icon={Truck} loading={statusSaving} disabled={detailLoading} onClick={() => updateStatus(nextDeliveryStatus)}>
@@ -449,7 +495,7 @@ export function OrderDetailPage() {
                   order.status === "returned";
                 const current = stage === order.status;
                 return (
-                  <div className="admin-timeline-entry" key={stage}>
+                  <div className={`admin-timeline-entry${current ? " current" : ""}`} key={stage} aria-current={current ? "step" : undefined}>
                     <span className={`timeline-dot${complete ? " done" : ""}${current ? " current" : ""}`}>
                       {complete && <Check size={11} />}
                     </span>
@@ -469,8 +515,8 @@ export function OrderDetailPage() {
                 );
               })}
               {terminalStatus && (
-                <div className="admin-timeline-entry">
-                  <span className="timeline-dot done"><Check size={11} /></span>
+                <div className="admin-timeline-entry current" aria-current="step">
+                  <span className="timeline-dot done current"><Check size={11} /></span>
                   <span>
                     <strong>{statusLabel(order.status)}</strong>
                     <small>Order closed</small>
@@ -527,9 +573,11 @@ export function OrderDetailPage() {
               <span>
                 <strong>Cash on delivery</strong>
                 <small>
-                  {order.paymentStatus === "received"
-                    ? `Received · ${money(order.total)}`
-                    : `Due on delivery · ${money(order.total)}`}
+                  {terminalStatus
+                    ? "Payment is not applicable to a cancelled or returned order."
+                    : order.paymentStatus === "received"
+                      ? `Received · ${money(order.total)}`
+                      : `Due on delivery · ${money(order.total)}`}
                 </small>
               </span>
             </div>{" "}
@@ -537,7 +585,7 @@ export function OrderDetailPage() {
               <div>
                 <span>Payment status</span>
                 <StatusBadge>
-                  {statusLabel(order.paymentStatus || "pending")}
+                  {terminalStatus ? "Not applicable" : statusLabel(order.paymentStatus || "pending")}
                 </StatusBadge>
               </div>
               <div>
@@ -545,15 +593,17 @@ export function OrderDetailPage() {
                 <strong>{money(order.total)}</strong>
               </div>
             </div>
-            <Button
-              variant="subtle"
-              onClick={() =>
-                updatePaymentStatus(order.paymentStatus === "received" ? "pending" : "received")
-              }
-              loading={paymentSaving}
-            >
-              Mark payment {order.paymentStatus === "received" ? "pending" : "received"}
-            </Button>
+            {!terminalStatus && (
+              <Button
+                variant="subtle"
+                onClick={() =>
+                  updatePaymentStatus(order.paymentStatus === "received" ? "pending" : "received")
+                }
+                loading={paymentSaving}
+              >
+                Mark payment {order.paymentStatus === "received" ? "pending" : "received"}
+              </Button>
+            )}
           </section>
           {statusTransitions[order.status]?.includes("cancelled") && (
             <button
@@ -582,6 +632,15 @@ export function OrderDetailPage() {
           onConfirm={async () => {
             if (await updateStatus(statusConfirm.status)) setStatusConfirm(null);
           }}
+        />
+      )}
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Delete this order?"
+          description={`${order.id} and its order details will be permanently deleted. Any reserved stock will be restored.`}
+          confirmLabel="Delete order"
+          onCancel={() => setDeleteConfirm(false)}
+          onConfirm={confirmDeleteOrder}
         />
       )}
     </>

@@ -292,6 +292,7 @@ async function updateOrderStatus(req, res, requestedStatus) {
     if (!ORDER_STATUSES.includes(requestedStatus)) throw fail(400, "Order status is invalid.");
     const order = await Order.findById(req.params.id);
     if (!order) throw fail(404, "Order not found.");
+    if (order.deletionPending) throw fail(409, "Order is being deleted.");
     if (!transitions[order.orderStatus]?.includes(requestedStatus)) {
       throw fail(409, `Order cannot transition from ${order.orderStatus} to ${requestedStatus}.`);
     }
@@ -299,28 +300,32 @@ async function updateOrderStatus(req, res, requestedStatus) {
     const restoresInventory = ["cancelled", "returned"].includes(requestedStatus);
     if (restoresInventory) {
       const updated = await Order.findOneAndUpdate(
-        { _id: order._id, orderStatus: order.orderStatus, inventoryRestored: false },
-        { $set: { orderStatus: requestedStatus, inventoryRestored: true } },
+        { _id: order._id, orderStatus: order.orderStatus, inventoryRestored: false, deletionPending: { $ne: true } },
+        { $set: { orderStatus: requestedStatus, paymentStatus: "pending", inventoryRestored: true } },
         { returnDocument: "after" },
       );
       if (!updated) throw fail(409, "Order changed while it was being updated.");
       try {
         await restoreReservedStock(order.items.map((item) => ({ productId: item.product, size: item.size, quantity: item.quantity })));
       } catch (stockError) {
-        await Order.updateOne({ _id: updated._id, orderStatus: requestedStatus, inventoryRestored: true }, { $set: { orderStatus: order.orderStatus, inventoryRestored: false } });
+        await Order.updateOne(
+          { _id: updated._id, orderStatus: requestedStatus, inventoryRestored: true },
+          { $set: { orderStatus: order.orderStatus, paymentStatus: order.paymentStatus, inventoryRestored: false } },
+        );
         throw stockError;
       }
       order.orderStatus = updated.orderStatus;
       order.inventoryRestored = true;
     } else {
       const updated = await Order.findOneAndUpdate(
-        { _id: order._id, orderStatus: order.orderStatus },
+        { _id: order._id, orderStatus: order.orderStatus, deletionPending: { $ne: true } },
         { $set: { orderStatus: requestedStatus } },
         { returnDocument: "after", runValidators: true },
       );
       if (!updated) throw fail(409, "Order changed while it was being updated.");
       order.orderStatus = updated.orderStatus;
     }
+    if (restoresInventory) order.paymentStatus = "pending";
 
     try {
       const statusMessage = `Your ShoeStore order ${order.orderNumber} is now ${requestedStatus}.`;
@@ -351,10 +356,56 @@ export async function setPaymentStatus(req, res) {
     if (!mongoose.isValidObjectId(req.params.id)) throw fail(400, "Invalid order ID.");
     const paymentStatus = String(req.body.paymentStatus || "");
     if (!["pending", "received"].includes(paymentStatus)) throw fail(400, "Payment status must be pending or received.");
-    const order = await Order.findByIdAndUpdate(req.params.id, { $set: { paymentStatus } }, { returnDocument: "after", runValidators: true });
-    if (!order) throw fail(404, "Order not found.");
+    const current = await Order.findById(req.params.id);
+    if (!current) throw fail(404, "Order not found.");
+    if (current.deletionPending) throw fail(409, "Order is being deleted.");
+    if (["cancelled", "returned"].includes(current.orderStatus) && paymentStatus === "received") {
+      throw fail(409, "Cancelled or returned orders cannot be marked as paid.");
+    }
+    const order = await Order.findOneAndUpdate(
+      { _id: req.params.id, orderStatus: current.orderStatus, deletionPending: { $ne: true } },
+      { $set: { paymentStatus } },
+      { returnDocument: "after", runValidators: true },
+    );
+    if (!order) throw fail(409, "Order changed while payment status was being updated.");
     return res.json({ success: true, message: "Payment status updated successfully.", data: order });
   } catch (error) {
     return sendError(res, error, "Unable to update payment status.");
+  }
+}
+
+export async function deleteOrder(req, res) {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) throw fail(400, "Invalid order ID.");
+    const order = await Order.findOneAndUpdate(
+      { _id: req.params.id, deletionPending: { $ne: true } },
+      { $set: { deletionPending: true } },
+      { returnDocument: "after" },
+    );
+    if (!order) throw fail(404, "Order not found or is already being deleted.");
+
+    const restoresInventory = ["pending", "confirmed", "shipped"].includes(order.orderStatus) && !order.inventoryRestored;
+    const reservations = restoresInventory
+      ? order.items.map((item) => ({ productId: item.product, size: item.size, quantity: item.quantity }))
+      : [];
+    try {
+      if (reservations.length) await restoreReservedStock(reservations);
+      const result = await Order.deleteOne({ _id: order._id, deletionPending: true });
+      if (!result.deletedCount) throw fail(409, "Order changed while it was being deleted.");
+    } catch (error) {
+      if (reservations.length) {
+        try {
+          await restoreReservedStock(reservations.map((item) => ({ ...item, quantity: -item.quantity })));
+        } catch (rollbackError) {
+          console.error("Order deletion inventory rollback failed:", rollbackError);
+        }
+      }
+      await Order.updateOne({ _id: order._id, deletionPending: true }, { $set: { deletionPending: false } });
+      throw error;
+    }
+
+    return res.json({ success: true, message: "Order deleted successfully." });
+  } catch (error) {
+    return sendError(res, error, "Unable to delete order.");
   }
 }

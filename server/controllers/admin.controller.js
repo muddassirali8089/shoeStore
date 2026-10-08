@@ -96,8 +96,8 @@ export async function getDashboard(req, res) {
     ]);
     const orderCounts = Object.fromEntries(statusCounts.map(({ _id, count }) => [_id, count]));
     const [pendingPayments, receivedPayments] = await Promise.all([
-      Order.aggregate([{ $match: { paymentStatus: "pending" } }, { $group: { _id: null, total: { $sum: "$total" } } }]),
-      Order.aggregate([{ $match: { paymentStatus: "received" } }, { $group: { _id: null, total: { $sum: "$total" } } }]),
+      Order.aggregate([{ $match: { paymentStatus: "pending", orderStatus: { $nin: ["cancelled", "returned"] } } }, { $group: { _id: null, total: { $sum: "$total" } } }]),
+      Order.aggregate([{ $match: { paymentStatus: "received", orderStatus: { $nin: ["cancelled", "returned"] } } }, { $group: { _id: null, total: { $sum: "$total" } } }]),
     ]);
     return res.json({
       success: true,
@@ -144,7 +144,7 @@ function buildCustomers(orders) {
       orders: [],
     };
     row.orderCount += 1;
-    if (order.orderStatus !== "cancelled") row.totalSpent += order.total;
+    if (!["cancelled", "returned"].includes(order.orderStatus)) row.totalSpent += order.total;
     row.orders.push(order);
     if (order.createdAt > row.lastOrder) {
       row.lastOrder = order.createdAt;

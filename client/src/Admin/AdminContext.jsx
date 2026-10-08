@@ -18,12 +18,13 @@ const defaultSettings = {
 function normalizeOrder(order) {
   const customer = order.customer || {}
   const address = order.shippingAddress || {}
+  const status = order.orderStatus || order.status || 'pending'
   return {
     ...order,
     id: order.orderNumber || order._id || order.id,
     _id: order._id || order.id,
     date: order.createdAt || order.date,
-    status: order.orderStatus || order.status || 'pending',
+    status,
     shipping: order.shippingFee ?? order.shipping,
     notes: order.orderNotes || order.notes || '',
     customer: {
@@ -45,7 +46,7 @@ function normalizeOrder(order) {
       price: Number(item.price || 0),
     })),
     paymentMethod: order.paymentMethod || 'cash_on_delivery',
-    paymentStatus: order.paymentStatus || 'pending',
+    paymentStatus: ['cancelled', 'returned'].includes(status) ? 'not_applicable' : order.paymentStatus || 'pending',
   }
 }
 
@@ -150,6 +151,10 @@ export function AdminProvider({ children }) {
 
   const updateOrders = useCallback(async (next) => {
     const nextOrders = asArray(next)
+    const inventoryChanged = nextOrders.some((order) => {
+      const prior = orders.find((item) => String(item.id) === String(order.id))
+      return prior && prior.status !== order.status && ['cancelled', 'returned'].includes(order.status)
+    })
     await Promise.all(nextOrders.flatMap((order) => {
       const prior = orders.find((item) => String(item.id) === String(order.id))
       if (!prior) return []
@@ -159,7 +164,55 @@ export function AdminProvider({ children }) {
       return operations
     }))
     setOrders((await orderService.list()).map(normalizeOrder))
+    try {
+      setDashboard(await adminService.dashboard())
+      setError('')
+    } catch (refreshError) {
+      setError(`Order saved, but dashboard statistics could not be refreshed: ${refreshError.message}`)
+    }
+    if (inventoryChanged) {
+      try {
+        const [updatedProducts, updatedInventory] = await Promise.all([
+          productService.list({}, true),
+          adminService.inventory(),
+        ])
+        setProducts(updatedProducts.map(normalizeProduct))
+        setInventory(asArray(updatedInventory))
+        window.dispatchEvent(new Event('mg-products-updated'))
+      } catch (refreshError) {
+        setError(`Order saved, but inventory could not be refreshed: ${refreshError.message}`)
+      }
+    }
   }, [orders])
+
+  const deleteOrder = useCallback(async (id) => {
+    await orderService.remove(id)
+    setOrders((current) => current.filter((order) => String(order._id) !== String(id)))
+    const results = await Promise.allSettled([
+      orderService.list(),
+      adminService.dashboard(),
+      adminService.customers(),
+      productService.list({}, true),
+      adminService.inventory(),
+    ])
+    const [updatedOrders, updatedDashboard, updatedCustomers, updatedProducts, updatedInventory] = results
+    if (updatedOrders.status === 'fulfilled') setOrders(updatedOrders.value.map(normalizeOrder))
+    if (updatedDashboard.status === 'fulfilled') setDashboard(updatedDashboard.value)
+    if (updatedCustomers.status === 'fulfilled') setCustomers(asArray(updatedCustomers.value))
+    if (updatedProducts.status === 'fulfilled') {
+      setProducts(updatedProducts.value.map(normalizeProduct))
+      window.dispatchEvent(new Event('mg-products-updated'))
+    }
+    if (updatedInventory.status === 'fulfilled') setInventory(asArray(updatedInventory.value))
+    const refreshErrors = results
+      .filter((result) => result.status === 'rejected')
+      .map((result) => result.reason.message)
+    if (refreshErrors.length) {
+      setError(`Order was deleted, but some admin data could not be refreshed: ${refreshErrors.join(' ')}`)
+    } else {
+      setError('')
+    }
+  }, [])
 
   const updateDiscounts = useCallback(async (next) => {
     const existing = new Map(discounts.map((item) => [String(item.id), item]))
@@ -204,13 +257,13 @@ export function AdminProvider({ children }) {
 
   const value = useMemo(() => ({
     products, categories, brands, orders, discounts, settings, dashboard, inventory, customers,
-    loading, error, toast, refreshAll, refreshInventory, fetchCustomer, fetchOrder, saveProduct, removeProduct,
+    loading, error, toast, refreshAll, refreshInventory, fetchCustomer, fetchOrder, saveProduct, removeProduct, deleteOrder,
     updateProducts, updateCategories: (next) => updateCatalog('categories', next),
     updateBrands: (next) => updateCatalog('brands', next), updateOrders, updateDiscounts,
     updateSettings, notify,
   }), [products, categories, brands, orders, discounts, settings, dashboard, inventory, customers,
     loading, error, toast, refreshAll, refreshInventory, saveProduct, removeProduct,
-    updateProducts, updateCatalog, updateOrders, updateDiscounts, updateSettings, notify, fetchCustomer, fetchOrder])
+    updateProducts, updateCatalog, updateOrders, updateDiscounts, updateSettings, notify, fetchCustomer, fetchOrder, deleteOrder])
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
 }
 
