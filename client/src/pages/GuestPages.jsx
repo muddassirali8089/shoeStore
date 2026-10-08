@@ -7,7 +7,7 @@ import { useUI } from '../context/UIContext'
 import { useWishlist } from '../context/WishlistContext'
 import { useOrders } from '../context/OrderContext'
 
-const steps = ['Order placed', 'Confirmed', 'Packed', 'Shipped', 'Out for delivery', 'Delivered']
+const deliverySteps = ['Order placed', 'Confirmed', 'Packed', 'Shipped', 'Out for delivery', 'Delivered']
 
 export function WishlistPage() {
   const { ids, removeFromWishlist } = useWishlist()
@@ -40,6 +40,17 @@ export function TrackOrderPage() {
     }
   }
   const status = String(lookup?.status || 'pending').toLowerCase()
-  const activeStep = status === 'delivered' ? 5 : status === 'shipped' ? 3 : status === 'confirmed' ? 1 : 0
-  return <main className="subpage track-page"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><span>Track your order</span></div><div className="track-hero"><span className="eyebrow">FROM OUR DOOR TO YOURS</span><h1>Good things are <em>on the way.</em></h1><p>Enter your order number and checkout phone number to see how your pair is getting along.</p><form className="track-form" onSubmit={submit}><label htmlFor="track-id">Order number</label><div><input name="order" id="track-id" placeholder="e.g. ORD-20261003-ABC123" required /><button className="button button-dark" disabled={loading}>{loading ? 'Checking…' : 'Track order'} <Search size={15} /></button></div><label htmlFor="track-contact">Checkout phone number</label><input id="track-contact" name="contact" type="tel" placeholder="Used when placing the order" required /></form>{error && <p className="validation-message" role="alert">{error}</p>}</div>{lookup && <section className="tracking-result"><div className="tracking-result-head"><div><span className="eyebrow">ORDER {lookup.id}</span><h2>Your pair is on its way.</h2><p>Placed {new Date(lookup.date).toLocaleDateString()}</p></div><span className={`status-pill status-${status.replaceAll(' ', '-')}`}>{status}</span></div><div className="timeline">{steps.map((step, index) => <div className={`timeline-step ${index <= activeStep ? 'complete' : ''}`} key={step}><span className="timeline-dot">{index < activeStep ? <Check size={13} /> : index === activeStep ? <span /> : null}</span><div><b>{step}</b>{index === 0 && <small>{new Date(lookup.date).toLocaleDateString()}</small>}{index === activeStep && <small>Looking good so far</small>}</div></div>)}</div></section>}</main>
+  const terminal = ['returned', 'cancelled'].includes(status)
+  const steps = terminal ? [...deliverySteps, status === 'returned' ? 'Returned' : 'Cancelled'] : deliverySteps
+  const activeStep = status === 'returned' || status === 'cancelled'
+    ? steps.length - 1
+    : status === 'delivered' ? 5 : status === 'shipped' ? 3 : status === 'confirmed' ? 1 : 0
+  const orderMessage = status === 'returned'
+    ? 'This order has been returned.'
+    : status === 'cancelled'
+      ? 'This order has been cancelled.'
+      : status === 'delivered'
+        ? 'Your pair has been delivered.'
+        : 'Your pair is on its way.'
+  return <main className="subpage track-page"><div className="breadcrumbs"><Link to="/">Home</Link><span>/</span><span>Track your order</span></div><div className="track-hero"><span className="eyebrow">FROM OUR DOOR TO YOURS</span><h1>{status === 'returned' ? <>Your order was <em>returned.</em></> : status === 'cancelled' ? <>Your order was <em>cancelled.</em></> : <>Good things are <em>on the way.</em></>}</h1><p>Enter your order number and checkout phone number to see how your pair is getting along.</p><form className="track-form" onSubmit={submit}><label htmlFor="track-id">Order number</label><div><input name="order" id="track-id" placeholder="e.g. ORD-20261003-ABC123" required /><button className="button button-dark" disabled={loading}>{loading ? 'Checking…' : 'Track order'} <Search size={15} /></button></div><label htmlFor="track-contact">Checkout phone number</label><input id="track-contact" name="contact" type="tel" placeholder="Used when placing the order" required /></form>{error && <p className="validation-message" role="alert">{error}</p>}</div>{lookup && <section className="tracking-result"><div className="tracking-result-head"><div><span className="eyebrow">ORDER {lookup.id}</span><h2>{orderMessage}</h2><p>Placed {new Date(lookup.date).toLocaleDateString()}</p></div><span className={`status-pill status-${status.replaceAll(' ', '-')}`}>{status}</span></div><div className={`timeline ${terminal ? 'timeline-terminal' : ''}`}>{steps.map((step, index) => <div className={`timeline-step ${index <= activeStep ? 'complete' : ''} ${index === activeStep ? 'current' : ''}`} aria-current={index === activeStep ? 'step' : undefined} key={step}><span className="timeline-dot">{index < activeStep ? <Check size={13} /> : index === activeStep ? <span /> : null}</span><div><b>{step}</b>{index === 0 && <small>{new Date(lookup.date).toLocaleDateString()}</small>}{index === activeStep && <small>{terminal ? (status === 'returned' ? 'Order return completed' : 'Order closed') : step === 'Delivered' ? 'Delivery complete' : 'Current order status'}</small>}</div></div>)}</div></section>}</main>
 }

@@ -58,6 +58,8 @@ EMAIL_FROM=your-address@gmail.com
 
 For Gmail accounts, the API uses Gmail SMTP (`smtp.gmail.com` on port `465`) automatically when `EMAIL_HOST` and `EMAIL_PORT` are omitted. Use a Google App Password for `EMAIL_PASSWORD` (not your regular account password). Other mail providers require their SMTP host and port to be set explicitly.
 
+On startup, the API creates the Men, Women, Sports, Hiking, and Casual categories if they do not exist, and fills in missing category images and descriptions. Existing category images and descriptions are preserved.
+
 ## Authentication
 
 ### Admin login

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import connectDB from "./connection/connectDB.js";
 import { seedAdmin } from "./utils/seedAdmin.js";
+import { seedCategories } from "./utils/seedCategories.js";
 import adminAuthRoutes from "./routes/adminAuth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import brandRoutes from "./routes/brand.routes.js";
@@ -58,6 +59,7 @@ export default app;
 export async function start() {
   try {
     await connectDB();
+    await seedCategories();
     // await seedAdmin();
     const port = Number(process.env.PORT) || 5000;
     app.listen(port, () => console.log(`ShoeStore API listening on http://localhost:${port}.`));
