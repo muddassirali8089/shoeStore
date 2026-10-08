@@ -191,7 +191,7 @@ async function getOrCreateSettings() {
   return StoreSettings.findOneAndUpdate(
     { key: "store" },
     { $setOnInsert: { key: "store" } },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
   );
 }
 

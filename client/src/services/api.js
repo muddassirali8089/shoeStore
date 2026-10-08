@@ -43,6 +43,7 @@ export const normalizeEntity = (record) => {
 
 export function normalizeProduct(record) {
   if (!record) return record
+  const stock = Number(record.stock ?? record.totalStock ?? record.sizes?.reduce((sum, size) => sum + Number(size.quantity || 0), 0)) || 0
   const product = {
     ...record,
     id: idOf(record),
@@ -50,7 +51,8 @@ export function normalizeProduct(record) {
     category: record.category?.name || record.category || '',
     images: Array.isArray(record.images) ? record.images : [],
     thumbnail: record.thumbnail || record.images?.[0] || '',
-    stock: Number(record.stock ?? record.totalStock ?? record.sizes?.reduce((sum, size) => sum + Number(size.quantity || 0), 0)) || 0,
+    stock,
+    outOfStock: record.outOfStock ?? stock === 0,
     active: record.status === 'Active',
   }
   return product

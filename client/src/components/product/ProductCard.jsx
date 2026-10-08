@@ -4,6 +4,7 @@ import { useCart } from '../../context/CartContext'
 import { useUI } from '../../context/UIContext'
 import { useWishlist } from '../../context/WishlistContext'
 import ConditionBadge from './ConditionBadge'
+import './product-stock-status.css'
 
 const money = (amount) => `Rs. ${amount.toLocaleString('en-PK')}`
 export default function ProductCard({ product }) {
@@ -18,6 +19,10 @@ export default function ProductCard({ product }) {
   }
   const quickAdd = (event) => {
     event.preventDefault()
+    if (product.outOfStock) {
+      notify('This product is out of stock.', 'error')
+      return
+    }
     if (!product.sizes?.length) {
       notify('This product currently has no available sizes.', 'error')
       return
@@ -30,6 +35,7 @@ export default function ProductCard({ product }) {
     <Link className="product-image-wrap" to={`/product/${product.id}`}>
       <img className="product-image" src={product.thumbnail} alt={product.name} loading="lazy" />
       {product.discount > 0 && <span className="sale-badge">-{product.discount}%</span>}
+      {product.outOfStock && <span className="product-stock-status">Out of stock</span>}
       <button className={`heart-button ${saved ? 'is-saved' : ''}`} type="button" aria-label={saved ? 'Remove from wishlist' : 'Add to wishlist'} onClick={toggleSaved}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button>
       <span className="quick-view"><ArrowUpRight size={15} /> View details</span>
     </Link>

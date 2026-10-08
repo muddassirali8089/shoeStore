@@ -82,6 +82,7 @@ test("product schema derives stock from unique arbitrary shoe sizes", async () =
   });
   assert.equal(product.totalStock, 5);
   assert.equal(product.stock, 5);
+  assert.equal(product.outOfStock, false);
   await product.validate();
 
   product.condition = "Almost new";
@@ -89,6 +90,8 @@ test("product schema derives stock from unique arbitrary shoe sizes", async () =
   product.condition = "Excellent 9/10";
   product.sizes = [{ size: 42, quantity: 0 }];
   assert.equal(product.totalStock, 0);
+  assert.equal(product.outOfStock, true);
+  assert.equal(product.toJSON().outOfStock, true);
   await product.validate();
   product.sizes = [{ size: 42, quantity: 3 }, { size: 42, quantity: 2 }];
   await assert.rejects(product.validate(), /sizes/);

@@ -38,6 +38,9 @@ productSchema.virtual("totalStock").get(function totalStock() {
 productSchema.virtual("stock").get(function stock() {
   return this.totalStock;
 });
+productSchema.virtual("outOfStock").get(function outOfStock() {
+  return this.totalStock === 0;
+});
 productSchema.virtual("thumbnail").get(function thumbnail() {
   return this.images[0] || "";
 });

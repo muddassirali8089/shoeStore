@@ -40,7 +40,9 @@ export const customerInitials = (customer = {}) =>
     .toUpperCase();
 
 export const productStatus = (product) =>
-  product.status || (Number(product.stock) > 0 ? "Active" : "Draft");
+  product.status === "Active" && (product.outOfStock ?? Number(product.stock) === 0)
+    ? "Out of stock"
+    : product.status || (Number(product.stock) > 0 ? "Active" : "Draft");
 
 export const productImage = (product) =>
   product.thumbnail || product.images?.[0] || "";

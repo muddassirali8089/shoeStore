@@ -51,11 +51,30 @@ export async function sendPasswordResetConfirmation(email) {
 
 export async function sendOrderEmail(email, subject, message) {
   if (!email) return;
+  const escapedMessage = message.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   return createTransport().sendMail({
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    from: process.env.EMAIL_FROM || `"ShoeStore" <${process.env.EMAIL_USER}>`,
     to: email,
     subject,
-    text: message,
-    html: `<p>${message.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</p>`,
+    text: `${message}\n\nThank you for shopping with ShoeStore. If you have any questions, reply to this email and our team will be happy to help.`,
+    html: `<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  <body style="margin:0;background:#f4f5f2;color:#202820;font-family:Arial,Helvetica,sans-serif">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f5f2;padding:32px 12px">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fff;border:1px solid #e5e8e2;border-radius:8px">
+          <tr><td style="padding:24px 30px;border-bottom:1px solid #edf0eb;color:#326b4f;font-size:20px;font-weight:bold">ShoeStore</td></tr>
+          <tr><td style="padding:30px">
+            <p style="margin:0 0 12px;color:#687268;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase">Order update</p>
+            <p style="margin:0;font-size:17px;line-height:1.7">${escapedMessage}</p>
+            <p style="margin:24px 0 0;color:#687268;font-size:14px;line-height:1.6">Thank you for shopping with ShoeStore. If you have any questions, reply to this email and our team will be happy to help.</p>
+          </td></tr>
+          <tr><td style="padding:17px 30px;background:#fafbf9;border-top:1px solid #edf0eb;color:#7b847b;font-size:11px;line-height:1.6">This is a transactional message about your ShoeStore order.</td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`,
   });
 }

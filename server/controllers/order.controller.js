@@ -22,8 +22,8 @@ function fail(statusCode, message) {
 }
 
 function sendError(res, error, fallback) {
-  console.error("Order request failed:", error);
   const status = error.statusCode || (error.name === "ValidationError" || error.name === "CastError" ? 400 : error.code === 11000 ? 409 : 500);
+  if (status >= 500) console.error("Order request failed:", error);
   const message = error.code === 11000 ? "A record with this value already exists." : error.name === "ValidationError" ? "Validation failed." : status >= 500 ? fallback : error.message;
   return res.status(status).json({
     success: false,
@@ -135,7 +135,7 @@ export async function createOrder(req, res) {
     const settings = await StoreSettings.findOneAndUpdate(
       { key: "store" },
       { $setOnInsert: { key: "store" } },
-      { new: true, upsert: true, setDefaultsOnInsert: true },
+      { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
     );
     if (!settings.cashOnDeliveryEnabled) throw fail(503, "Cash on delivery is temporarily unavailable.");
 
@@ -167,7 +167,7 @@ export async function createOrder(req, res) {
     if (discountReservation) {
       const filter = { _id: discountReservation.id, status: "Active", startsAt: { $lte: new Date() }, endsAt: { $gte: new Date() } };
       if (discountReservation.usageLimit > 0) filter.uses = { $lt: discountReservation.usageLimit };
-      const reserved = await Discount.findOneAndUpdate(filter, { $inc: { uses: 1 } }, { new: true });
+      const reserved = await Discount.findOneAndUpdate(filter, { $inc: { uses: 1 } }, { returnDocument: "after" });
       if (!reserved) throw fail(409, "Discount code usage limit was reached. Retry without the code.");
       discountReservation.reserved = true;
     }
@@ -301,7 +301,7 @@ async function updateOrderStatus(req, res, requestedStatus) {
       const updated = await Order.findOneAndUpdate(
         { _id: order._id, orderStatus: order.orderStatus, inventoryRestored: false },
         { $set: { orderStatus: requestedStatus, inventoryRestored: true } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!updated) throw fail(409, "Order changed while it was being updated.");
       try {
@@ -316,7 +316,7 @@ async function updateOrderStatus(req, res, requestedStatus) {
       const updated = await Order.findOneAndUpdate(
         { _id: order._id, orderStatus: order.orderStatus },
         { $set: { orderStatus: requestedStatus } },
-        { new: true, runValidators: true },
+        { returnDocument: "after", runValidators: true },
       );
       if (!updated) throw fail(409, "Order changed while it was being updated.");
       order.orderStatus = updated.orderStatus;
@@ -351,7 +351,7 @@ export async function setPaymentStatus(req, res) {
     if (!mongoose.isValidObjectId(req.params.id)) throw fail(400, "Invalid order ID.");
     const paymentStatus = String(req.body.paymentStatus || "");
     if (!["pending", "received"].includes(paymentStatus)) throw fail(400, "Payment status must be pending or received.");
-    const order = await Order.findByIdAndUpdate(req.params.id, { $set: { paymentStatus } }, { new: true, runValidators: true });
+    const order = await Order.findByIdAndUpdate(req.params.id, { $set: { paymentStatus } }, { returnDocument: "after", runValidators: true });
     if (!order) throw fail(404, "Order not found.");
     return res.json({ success: true, message: "Payment status updated successfully.", data: order });
   } catch (error) {

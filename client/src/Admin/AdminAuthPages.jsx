@@ -98,6 +98,7 @@ export function VerifyCodePage() {
     const next = startIndex === 0 && cleanValue.length >= 6 ? ["", "", "", "", "", ""] : [...digits];
     const pasted = cleanValue.slice(0, 6 - startIndex);
     [...pasted].forEach((digit, offset) => { next[startIndex + offset] = digit; });
+    if (!cleanValue) next[startIndex] = "";
     setDigits(next);
     setError("");
     setStatus("");
@@ -112,13 +113,17 @@ export function VerifyCodePage() {
     } else if (event.key === "ArrowRight" && index < 5) {
       event.preventDefault();
       inputs.current[index + 1]?.focus();
-    } else if (event.key === "Backspace" && index > 0) {
+    } else if (event.key === "Backspace") {
       event.preventDefault();
       const next = [...digits];
-      next[index] = "";
-      next[index - 1] = "";
+      if (next[index]) {
+        next[index] = "";
+      } else if (index > 0) {
+        next[index - 1] = "";
+        inputs.current[index - 1]?.focus();
+      }
       setDigits(next);
-      inputs.current[index - 1]?.focus();
+      setError("");
     }
   }
 

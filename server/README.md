@@ -198,6 +198,7 @@ Example form-data fields:
 
 Note: `images` is the file field name for uploads. `brand` and `category` can be accepted as an ObjectId or by name.
 Size quantities must be whole numbers greater than or equal to zero; `0` represents an out-of-stock size and is used by admin inventory updates.
+Products expose a derived `outOfStock` flag, which is `true` when the combined quantity across all sizes is zero. This does not change the product's catalog status.
 
 Valid `condition` values:
 
