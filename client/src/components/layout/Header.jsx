@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Heart, Menu, Search, ShoppingBag, X } from 'lucide-react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useUI } from '../../context/UIContext'
 import { categories } from '../../data/products'
@@ -24,9 +24,9 @@ export default function Header() {
     <header className="site-header">
       <button className="icon-button mobile-only" aria-label="Open menu" onClick={() => setMenuOpen(true)}><Menu size={22} /></button>
       <Link to="/" className="brand-logo" aria-label="MGEARS home"><span className="logo-mark">M</span><span>MGEARS<small>PRE-LOVED. WELL-LOVED.</small></span></Link>
-      <nav className="desktop-nav" aria-label="Main navigation"><NavLink to="/shop" className={isShopPage && !selectedCategory ? 'active' : ''} aria-current={isShopPage && !selectedCategory ? 'page' : undefined}>Shop all</NavLink>{categories.map((category) => {
+      <nav className="desktop-nav" aria-label="Main navigation"><Link to="/shop" className={isShopPage && !selectedCategory ? 'active' : ''} aria-current={isShopPage && !selectedCategory ? 'page' : undefined}>Shop all</Link>{categories.map((category) => {
         const active = (isShopPage && selectedCategory === category.slug) || location.pathname === `/category/${category.slug}`
-        return <NavLink key={category.slug} to={`/shop?category=${category.slug}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>{category.name}</NavLink>
+        return <Link key={category.slug} to={`/shop?category=${category.slug}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>{category.name}</Link>
       })}</nav>
       <div className="header-actions">
         <button className="icon-button search-toggle" aria-label="Search" onClick={() => setSearchOpen(!searchOpen)}><Search size={20} /></button>
@@ -40,9 +40,9 @@ export default function Header() {
     </div>
     <aside className={`mobile-menu ${menuOpen ? 'mobile-menu-open' : ''}`} aria-hidden={!menuOpen}>
       <div className="mobile-menu-top"><Link to="/" className="brand-logo"><span className="logo-mark">M</span><span>MGEARS<small>PRE-LOVED. WELL-LOVED.</small></span></Link><button className="icon-button" aria-label="Close menu" onClick={() => setMenuOpen(false)}><X /></button></div>
-      <nav><NavLink onClick={() => setMenuOpen(false)} to="/shop" className={isShopPage && !selectedCategory ? 'active' : ''} aria-current={isShopPage && !selectedCategory ? 'page' : undefined}>Shop all<span>→</span></NavLink>{categories.map((category) => {
+      <nav><Link onClick={() => setMenuOpen(false)} to="/shop" className={isShopPage && !selectedCategory ? 'active' : ''} aria-current={isShopPage && !selectedCategory ? 'page' : undefined}>Shop all<span>→</span></Link>{categories.map((category) => {
         const active = (isShopPage && selectedCategory === category.slug) || location.pathname === `/category/${category.slug}`
-        return <NavLink onClick={() => setMenuOpen(false)} key={category.slug} to={`/shop?category=${category.slug}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>{category.name}<span>→</span></NavLink>
+        return <Link onClick={() => setMenuOpen(false)} key={category.slug} to={`/shop?category=${category.slug}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>{category.name}<span>→</span></Link>
       })}</nav>
       <div className="mobile-menu-footer"><Link onClick={() => setMenuOpen(false)} to="/wishlist">Wishlist</Link><Link onClick={() => setMenuOpen(false)} to="/track-order">Track an order</Link></div>
     </aside>

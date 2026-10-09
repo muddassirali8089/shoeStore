@@ -18,6 +18,7 @@
   font-size: 13px;
   letter-spacing: -.01em;
 }
+.admin-login-shell { --ad-green: #326b4f; --ad-green-dark: #26583e; }
 .admin-shell *, .admin-login-shell * { box-sizing: border-box; }
 .admin-shell button, .admin-login-shell button, .admin-shell input, .admin-shell select, .admin-shell textarea, .admin-login-shell input { font: inherit; }
 .admin-shell button { color: inherit; }
