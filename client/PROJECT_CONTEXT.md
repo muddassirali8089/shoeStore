@@ -1,8 +1,8 @@
-# MGEARS project context
+# JUTTAYMART project context
 
 ## Project overview
 
-MGEARS is a frontend-only footwear storefront inspired by mgears.pk, paired with a separate mock admin panel. There is no backend, database, API, real customer/admin authentication service, or payment processing.
+JUTTAYMART is a frontend-only footwear storefront inspired by JUTTAYMART.pk, paired with a separate mock admin panel. There is no backend, database, API, real customer/admin authentication service, or payment processing.
 
 ## Stack and commands
 
