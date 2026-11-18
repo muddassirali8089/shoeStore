@@ -62,7 +62,8 @@ export async function start() {
     await seedCategories();
     // await seedAdmin();
     const port = Number(process.env.PORT) || 5000;
-    app.listen(port, () => console.log(`ShoeStore API listening on http://localhost:${port}.`));
+    const host = process.env.HOST || "0.0.0.0";
+    app.listen(port, host, () => console.log(`ShoeStore API listening on http://${host}:${port}.`));
   } catch (error) {
     console.error("Server startup failed:", error.message);
     process.exitCode = 1;
