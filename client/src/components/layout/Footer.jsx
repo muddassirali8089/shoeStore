@@ -11,6 +11,6 @@ export default function Footer() {
   return <footer className="site-footer"><div className="footer-main">
     <div className="footer-brand"><Link to="/" className="brand-logo"><span className="logo-mark">M</span><span>JUTTAYMART<small>PRE-LOVED. WELL-LOVED.</small></span></Link><p>Find the right pair. Give great shoes a second stride.</p><a className="social-link" href="https://instagram.com" aria-label="Instagram"><Camera size={17} /></a></div>
     {columns.map(([title, links]) => <div className="footer-column" key={title}><h3>{title}</h3>{links.map((item) => { const [label, url] = item.split('|'); return <Link to={url} key={label}>{label}</Link> })}</div>)}
-    <div className="footer-column contact-column"><h3>LET'S TALK</h3><span><MapPin size={15} /> Lahore, Pakistan</span><a href="mailto:hello@JUTTAYMART.pk"><Mail size={15} /> hello@JUTTAYMART.pk</a><a href="tel:+923001234567"><Phone size={15} /> +92 300 123 4567</a><Link to="/contact">Get in touch <ArrowUpRight size={14} /></Link></div>
+    <div className="footer-column contact-column"><h3>LET'S TALK</h3><span><MapPin size={15} /> Lahore, Pakistan</span><a href="mailto:mudd@JUTTAYMART.pk"><Mail size={15} /> mudd@JUTTAYMART.pk</a><a href="tel:+923001234567"><Phone size={15} /> +92 3305375289</a><Link to="/contact">Get in touch <ArrowUpRight size={14} /></Link></div>
   </div><div className="footer-bottom"><span>© 2026 JUTTAYMART. All rights reserved.</span><span>Thoughtfully sourced. Carefully checked.</span><span>Cash on delivery · Bank transfer</span></div></footer>
 }
