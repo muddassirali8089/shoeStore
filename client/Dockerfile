@@ -1,16 +1,20 @@
-FROM node:20-alpine
+# --- STAGE 1: Build the App ---
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# 1. Copy package files and install dependencies
+# Accept the env variable from GitHub Actions
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 COPY package*.json ./
 RUN npm install
-
-# 2. Copy the source code
 COPY . .
+RUN npm run build
 
-# 3. Expose Vite's default port
+# --- STAGE 2: Serve the App ---
+FROM node:20-alpine
+WORKDIR /app
+RUN npm install -g serve
+COPY --from=builder /app/dist ./dist
 EXPOSE 3000
-
-# 4. Run the Vite development server
-# We add --host so it can be accessed outside the Docker container
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
