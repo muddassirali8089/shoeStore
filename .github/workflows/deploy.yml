@@ -11,6 +11,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify Docker Hub secrets
+        shell: bash
+        env:
+          DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DH_USER" ]; then
+            echo "ERROR: Docker Hub username is empty"
+            exit 1
+          fi
+
+          if [ -z "$DH_TOKEN" ]; then
+            echo "ERROR: Docker Hub token is empty"
+            exit 1
+          fi
+
+          if [[ "$DH_USER" =~ [[:space:]] ]]; then
+            echo "ERROR: Username contains whitespace"
+            exit 1
+          fi
+
+          if [[ "$DH_TOKEN" =~ [[:space:]] ]]; then
+            echo "ERROR: Token contains whitespace"
+            exit 1
+          fi
+
+          echo "SUCCESS: Both Docker Hub secrets are available."
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v4
         with:
@@ -45,6 +73,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          debug: true
           script: |
             set -e
             cd ~/shoeStore
