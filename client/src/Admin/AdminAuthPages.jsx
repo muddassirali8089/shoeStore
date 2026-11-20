@@ -45,6 +45,7 @@ function RecoveryFrame({ children }) {
 }
 
 function Message({ children, type = "error" }) {
+  //
   return children ? <div className={`admin-recovery-message ${type}`} role={type === "error" ? "alert" : "status"}>{children}</div> : null;
 }
 
