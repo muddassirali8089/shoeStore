@@ -48,10 +48,12 @@ export function AdminLogin() {
     }
   }, [location.pathname, location.state, navigate, notify]);
   async function submit(event) {
+    // UI step 1: prevent a page reload and collect/validate the email and password.
     event.preventDefault();
     if (!email.trim() || !password) { setError("Enter your email and password to continue."); return; }
     try {
       setSubmitting(true);
+      // UI step 2: call the auth context, which calls authService.login -> POST /admin/login.
       await loginAdmin(email, password);
       notify("Welcome back. You’re signed in to the admin workspace.");
       navigate(location.state?.from?.pathname || "/admin/dashboard", { replace: true });

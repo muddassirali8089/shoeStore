@@ -1,7 +1,12 @@
 import { apiClient, listData, normalizeProduct, requestData } from './api'
 
+// PRODUCT API adapter:
+// Public UI pages call list/get; the admin form calls create/update/remove.
+// The Express routes and catalog controller are the backend destination.
 export const productService = {
   async list(params = {}, admin = false) {
+    // Public catalog: GET /products; admin catalog: GET /admin/products.
+    // The loop follows pagination until every product page has been loaded.
     const url = admin ? '/admin/products' : '/products'
     const all = []
     let page = 1

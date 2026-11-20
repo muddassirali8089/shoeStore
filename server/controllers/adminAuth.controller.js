@@ -20,6 +20,7 @@ function adminData(admin) {
 
 export async function login(req, res) {
   try {
+    // Login backend step 1: receive the email/password sent by the React login form.
     const email = String(req.body.email || "").trim().toLowerCase();
     const password = String(req.body.password || "");
     if (!emailPattern.test(email) || !password) {
@@ -29,10 +30,12 @@ export async function login(req, res) {
       return res.status(500).json({ success: false, message: "JWT_SECRET is not configured." });
     }
 
+    // Login backend step 2: load the admin from MongoDB and verify the hashed password.
     const admin = await Admin.findOne({ email }).select("+password");
     if (!admin || !admin.isActive || !(await admin.comparePassword(password))) {
       return res.status(401).json({ success: false, message: "Email or password is incorrect." });
     }
+    // Login backend step 3: create a signed JWT. The frontend stores this as mg-admin-token.
     const token = jwt.sign({ sub: admin.id, role: admin.role }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN || "1d",
     });

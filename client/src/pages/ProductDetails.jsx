@@ -19,6 +19,8 @@ export default function ProductDetails() {
     let active = true
     async function loadProduct() {
       try {
+        // PRODUCT DETAILS FLOW: the URL ID is sent to GET /products/:id.
+        // The returned MongoDB record is normalized and stored in local component state.
         const loaded = await fetchProduct(productId)
         if (active) setDetail({ id: productId, product: loaded })
       } catch (error) {

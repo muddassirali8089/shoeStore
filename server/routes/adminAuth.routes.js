@@ -12,6 +12,8 @@ const authLimiter = rateLimit({
   message: { success: false, message: "Too many authentication requests. Try again later." },
 });
 
+// LOGIN BACKEND:
+// POST /api/v1/admin/login -> this route -> login controller -> Admin model -> JWT response.
 router.post("/login", authLimiter, login);
 router.post("/logout", requireAdmin, logout);
 router.get("/me", requireAdmin, currentAdmin);

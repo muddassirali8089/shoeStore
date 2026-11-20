@@ -19,6 +19,8 @@ export function ProductProvider({ children }) {
     let active = true
     async function loadCatalog() {
       try {
+        // UI/PRODUCT API step 1: load public products, categories, and brands in parallel.
+        // productService.list() sends GET /products through the shared Axios client.
         const [loadedProducts, loadedCategories, loadedBrands] = await Promise.all([
           productService.list(), categoryService.list(), brandService.list(),
         ])
@@ -42,6 +44,8 @@ export function ProductProvider({ children }) {
     const syncBrands = async () => {
       try { setBrands(await brandService.list()) } catch (loadError) { setError(loadError.message) }
     }
+    // Product create/update/delete actions dispatch this event after the backend succeeds.
+    // Listening here refreshes the public store catalog without a full page reload.
     window.addEventListener('mg-products-updated', syncProducts)
     window.addEventListener('mg-categories-updated', syncCategories)
     window.addEventListener('mg-brands-updated', syncBrands)

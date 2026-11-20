@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import Admin from "../models/Admin.js";
 
 export async function requireAdmin(req, res, next) {
+	// Protected product APIs read the JWT sent by apiClient's request interceptor.
 	const token = req.headers.authorization?.startsWith("Bearer ")
 		? req.headers.authorization.slice(7)
 		: null;

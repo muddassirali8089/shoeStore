@@ -196,6 +196,7 @@ function ProductForm() {
   );
 
   async function submit(event) {
+    // PRODUCT UI step 1: collect form values and selected image files.
     event.preventDefault();
     setShowSizeErrors(true);
     const name = String(form.name || "").trim();
@@ -272,6 +273,8 @@ function ProductForm() {
     delete data.sku;
     try {
       setSaving(true);
+      // PRODUCT UI step 2: AdminContext calls POST (create) or PATCH (update).
+      // The shared Axios interceptor adds the login JWT to protected requests.
       await saveProduct(data, imageEntries.filter((image) => image.file).map((image) => image.file), item?.id);
       notify(
         item

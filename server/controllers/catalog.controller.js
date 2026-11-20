@@ -84,6 +84,7 @@ async function populateProduct(product) {
 export async function createProduct(req, res) {
   const uploadedImages = [];
   try {
+    // Product backend step 1: validate form fields and image files from the admin UI.
     const { name, condition, description } = req.body;
     if (!String(name || "").trim()) throw fail(400, "Product name is required.");
     if (!conditions.includes(condition)) throw fail(400, "Product condition is invalid.");
@@ -102,6 +103,7 @@ export async function createProduct(req, res) {
     const sizes = parseSizes(req.body.sizes);
     if (!sizes) throw fail(400, "Add at least one shoe size and quantity.");
 
+    // Product backend step 2: upload images to Cloudinary, then create the MongoDB product.
     const { uploadImage, isCloudinaryConfigured } = await import("../config/cloudinary.js");
     if (!isCloudinaryConfigured()) throw fail(503, "Cloudinary is not configured.");
     for (const file of req.files) uploadedImages.push(await uploadImage(file, "shoestore/products"));
@@ -133,6 +135,8 @@ export async function createProduct(req, res) {
 
 export async function getProducts(req, res) {
   try {
+    // Public product list: MongoDB returns only Active products.
+    // req.admin is set only by the protected admin product route; public callers remain false.
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
     const filter = req.admin ? {} : { status: "Active" };
@@ -197,6 +201,7 @@ export async function getProducts(req, res) {
 
 export async function getProduct(req, res) {
   try {
+    // Product details: the UI sends the MongoDB product ID from /product/:id.
     if (!mongoose.isValidObjectId(req.params.id)) throw fail(400, "Invalid product ID.");
     const filter = { _id: req.params.id };
     if (!req.admin) filter.status = "Active";

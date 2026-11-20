@@ -33,6 +33,7 @@ app.use((req, _res, next) => {
   return next();
 });
 
+// API flow: Express receives /api/v1/* here, then mounts the matching route files below.
 app.get("/", (_req, res) => res.json({ success: true, message: "ShoeStore API is running." }));
 app.get(`${api}/health`, (_req, res) => {
   const connected = mongoose.connection.readyState === 1;

@@ -1,5 +1,8 @@
 import axios from 'axios'
 
+// FRONTEND -> BACKEND:
+// Every API service uses this base URL. Vite supplies VITE_API_URL in deployment;
+// localhost:8000/api/v1 is the default for local development.
 const configuredUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 export const API_BASE_URL = configuredUrl.replace(/\/+$/, '')
 const TOKEN_KEY = 'mg-admin-token'
@@ -9,12 +12,17 @@ export const apiClient = axios.create({
   headers: { Accept: 'application/json' },
 })
 
+// Before an HTTP request is sent, read the login JWT from localStorage and attach it
+// as a Bearer token. Protected Express routes (create/update/delete product) use this
+// same token to verify that the caller is an authenticated admin.
 apiClient.interceptors.request.use((config) => {
   const token = window.localStorage.getItem(TOKEN_KEY)
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
+// Convert backend error responses into normal JavaScript Error objects for UI catches.
+// A 401 also removes the expired login token and tells the auth context to log out.
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {

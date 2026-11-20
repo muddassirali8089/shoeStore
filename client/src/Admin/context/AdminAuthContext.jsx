@@ -76,8 +76,11 @@ export function AdminAuthProvider({ children }) {
     return { ok: true }
   }, [challenge, clearRecovery])
   const loginAdmin = useCallback(async (email, password) => {
+    // 1. Call the login API. The backend validates credentials and returns a JWT.
     const result = await authService.login({ email: String(email).trim().toLowerCase(), password })
+    // 2. Store the JWT for later authorized product and admin requests.
     window.localStorage.setItem(TOKEN_KEY, result.token)
+    // 3. Update React auth state so protected admin routes can render.
     setAdmin(result.admin)
     setIsAdminAuthenticated(true)
     window.dispatchEvent(new Event('mg-admin-auth-changed'))

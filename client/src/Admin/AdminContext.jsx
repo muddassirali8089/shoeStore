@@ -233,6 +233,8 @@ export function AdminProvider({ children }) {
     setSettings({ ...defaultSettings, ...await adminService.updateSettings(payload) })
   }, [])
   const saveProduct = useCallback(async (item, files, id) => {
+    // PRODUCT UI step 3: create or update through productService.
+    // A custom window event tells the public ProductContext to refresh its catalog.
     const saved = id ? await productService.update(id, item, files) : await productService.create(item, files)
     setProducts((current) => id
       ? current.map((product) => product.id === id ? saved : product)
