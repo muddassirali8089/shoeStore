@@ -21,11 +21,15 @@ const api = "/api/v1";
 
 app.disable("x-powered-by");
 app.use(helmet());
+
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN
-    ? process.env.CLIENT_ORIGIN.split(",").map((origin) => origin.trim())
-    : true,
+  origin: 'http://32.236.174.141:3000' // Allow your frontend
 }));
+// app.use(cors({
+//   origin: process.env.CLIENT_ORIGIN
+//     ? process.env.CLIENT_ORIGIN.split(",").map((origin) => origin.trim())
+//     : true,
+// }));
 app.use(express.json({ limit: "1mb", strict: false }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use((req, _res, next) => {
