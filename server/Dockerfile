@@ -8,8 +8,8 @@ RUN npm install
 # Copy the rest of your server code
 COPY . .
 
-# Expose the port your server runs on (I see 8000 in your previous compose file)
+# Expose the port your server runs on
 EXPOSE 8000
 
-# Start the server (use your actual start command)
+# Start the server
 CMD ["node", "index.js"]
