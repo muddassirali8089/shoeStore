@@ -1,55 +1,22 @@
-
 name: Deploy to EC2
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # STEP 1: Verify GitHub secrets
-      - name: Verify Docker Hub secrets
-        shell: bash
-        env:
-          DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-          DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          if [ -z "$DH_USER" ]; then
-            echo "ERROR: Docker Hub username is empty"
-            exit 1
-          fi
-
-          if [ -z "$DH_TOKEN" ]; then
-            echo "ERROR: Docker Hub token is empty"
-            exit 1
-          fi
-
-          if [[ "$DH_USER" =~ [[:space:]] ]]; then
-            echo "ERROR: Username contains whitespace"
-            exit 1
-          fi
-
-          if [[ "$DH_TOKEN" =~ [[:space:]] ]]; then
-            echo "ERROR: Token contains whitespace"
-            exit 1
-          fi
-
-          echo "SUCCESS: Both Docker Hub secrets are available."
-
-      # STEP 2: Login to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # STEP 3: Build and push Server
       - name: Build and push Server Image
         uses: docker/build-push-action@v6
         with:
@@ -58,7 +25,6 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/shoe-server:latest
 
-      # STEP 4: Build and push Client
       - name: Build and push Client Image
         uses: docker/build-push-action@v6
         with:
@@ -69,11 +35,9 @@ jobs:
           build-args: |
             VITE_API_URL=${{ secrets.VITE_API_URL }}
 
-  # STEP 5: Deploy to EC2
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -81,7 +45,6 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          debug: true
           script: |
             set -e
             cd ~/shoeStore
