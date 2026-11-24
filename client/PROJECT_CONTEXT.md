@@ -1,8 +1,8 @@
-# JUTTAYMART project context
+# KHAN project context
 
 ## Project overview
 
-JUTTAYMART is a frontend-only footwear storefront inspired by JUTTAYMART.pk, paired with a separate mock admin panel. There is no backend, database, API, real customer/admin authentication service, or payment processing.
+KHAN is a frontend-only footwear storefront inspired by KHAN.pk, paired with a separate mock admin panel. There is no backend, database, API, real customer/admin authentication service, or payment processing.
 
 ## Stack and commands
 

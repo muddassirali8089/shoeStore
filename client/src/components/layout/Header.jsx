@@ -23,7 +23,7 @@ export default function Header() {
   return <>
     <header className="site-header">
       <button className="icon-button mobile-only" aria-label="Open menu" onClick={() => setMenuOpen(true)}><Menu size={22} /></button>
-      <Link to="/" className="brand-logo" aria-label="JUTTAYMART home"><span className="logo-mark">J</span><span>JUTTAYMART<small>PRE-LOVED. WELL-LOVED.</small></span></Link>
+      <Link to="/" className="brand-logo" aria-label="KHAN home"><span className="logo-mark">J</span><span>KHAN<small>PRE-LOVED. WELL-LOVED.</small></span></Link>
       <nav className="desktop-nav" aria-label="Main navigation"><Link to="/shop" className={isShopPage && !selectedCategory ? 'active' : ''} aria-current={isShopPage && !selectedCategory ? 'page' : undefined}>Shop all</Link>{categories.map((category) => {
         const active = (isShopPage && selectedCategory === category.slug) || location.pathname === `/category/${category.slug}`
         return <Link key={category.slug} to={`/shop?category=${category.slug}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>{category.name}</Link>
@@ -39,7 +39,7 @@ export default function Header() {
       <form className="search-form" onSubmit={submitSearch}><Search size={19} /><input autoFocus placeholder="Search shoes, brands, styles..." value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search products" /><button type="submit">Search</button><button type="button" className="icon-button" aria-label="Close search" onClick={() => setSearchOpen(false)}><X size={18} /></button></form>
     </div>
     <aside className={`mobile-menu ${menuOpen ? 'mobile-menu-open' : ''}`} aria-hidden={!menuOpen}>
-      <div className="mobile-menu-top"><Link to="/" className="brand-logo"><span className="logo-mark">M</span><span>JUTTAYMART<small>PRE-LOVED. WELL-LOVED.</small></span></Link><button className="icon-button" aria-label="Close menu" onClick={() => setMenuOpen(false)}><X /></button></div>
+      <div className="mobile-menu-top"><Link to="/" className="brand-logo"><span className="logo-mark">M</span><span>KHAN<small>PRE-LOVED. WELL-LOVED.</small></span></Link><button className="icon-button" aria-label="Close menu" onClick={() => setMenuOpen(false)}><X /></button></div>
       <nav><Link onClick={() => setMenuOpen(false)} to="/shop" className={isShopPage && !selectedCategory ? 'active' : ''} aria-current={isShopPage && !selectedCategory ? 'page' : undefined}>Shop all<span>→</span></Link>{categories.map((category) => {
         const active = (isShopPage && selectedCategory === category.slug) || location.pathname === `/category/${category.slug}`
         return <Link onClick={() => setMenuOpen(false)} key={category.slug} to={`/shop?category=${category.slug}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>{category.name}<span>→</span></Link>

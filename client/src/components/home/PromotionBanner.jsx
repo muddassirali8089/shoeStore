@@ -9,7 +9,7 @@ export default function PromotionBanner({ image, eyebrow, title, description, ac
       <h2>{title}</h2>
       <p>{description}</p>
       <Link className={compact ? 'text-link' : 'button button-light'} to={href}>{action} <ArrowRight size={16} /></Link>
-      {!compact && <span className="editorial-index">JUTTAYMART / 2026</span>}
+      {!compact && <span className="editorial-index">KHAN / 2026</span>}
     </div>
   </section>
 }
